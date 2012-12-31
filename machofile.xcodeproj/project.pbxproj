@@ -24,6 +24,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2105339E1691B58C00AFD740 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README.md; sourceTree = "<group>"; };
 		21B3D6B11691AB73001F9EEE /* machofile */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = machofile; sourceTree = BUILT_PRODUCTS_DIR; };
 		21B3D6B51691AB73001F9EEE /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		21B3D6C71691ACF9001F9EEE /* machofile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = machofile.cpp; sourceTree = "<group>"; };
@@ -44,6 +45,7 @@
 		21B3D6A61691AB73001F9EEE = {
 			isa = PBXGroup;
 			children = (
+				2105339E1691B58C00AFD740 /* README.md */,
 				21B3D6B41691AB73001F9EEE /* machofile */,
 				21B3D6B21691AB73001F9EEE /* Products */,
 			);
