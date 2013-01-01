@@ -43,6 +43,18 @@ static void printDylibs(MachOFile& machoFile)
     }
 }
 
+static void printSegments64(MachOFile& machoFile)
+{
+    const segment_64_infos_t& segment_64_infos = machoFile.getSegment64Infos();
+    
+    segment_64_infos_t::const_iterator iter;
+    for (iter=segment_64_infos.begin(); iter!=segment_64_infos.end(); iter++) {
+        const segment_64_info_t& info = *iter;
+        
+        printf("LC_SEGMENT_64 (%s)\n", info.cmd->segname);
+    }
+}
+
 int main(int argc, const char * argv[])
 {    
     MachOFile machoFile;
@@ -64,7 +76,12 @@ int main(int argc, const char * argv[])
             printf("Architecture: %s\n", archInfo->name);
         }
         
+        printSegments64(machoFile);
         printDylibs(machoFile);
+    }
+    else
+    {
+        printf("error parsing %s", argv[1]);
     }
 
     return 0;
