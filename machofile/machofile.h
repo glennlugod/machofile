@@ -24,12 +24,13 @@
 
 namespace rotg {
     
-    struct load_command_info {
-        uint32_t cmd_type;		/* type of load command */
-        const struct load_command* cmd;
-    };
+    typedef struct load_command_info {
+        uint32_t                    cmd_type;		/* type of load command */
+        const struct load_command*  cmd;
+        void*                       cmd_info;
+    } load_command_info_t;
     
-    typedef std::vector<load_command_info> load_commands_info_t;
+    typedef std::vector<load_command_info_t> load_command_infos_t;
     
     typedef struct dylib_info {
         uint32_t                    cmd_type;
@@ -169,10 +170,10 @@ namespace rotg {
         bool parse_universal(macho_input_t *input);
         bool parse_load_commands(macho_input_t *input);
         
-        bool parse_LC_SEGMENT_64(macho_input_t *input, uint32_t cmd_type, const struct load_command* cmd, uint32_t cmdsize);
-        bool parse_LC_RPATH(macho_input_t *input, uint32_t cmd_type, const struct load_command* cmd, uint32_t cmdsize);
-        bool parse_LC_DYLIBS(macho_input_t *input, uint32_t cmd_type, const struct load_command* cmd, uint32_t cmdsize);
-        bool parse_LC_DYLD_INFOS(macho_input_t *input, uint32_t cmd_type, const struct load_command* cmd, uint32_t cmdsize);
+        bool parse_LC_SEGMENT_64(macho_input_t *input, uint32_t cmd_type, load_command_info_t* load_cmd_info, uint32_t cmdsize);
+        bool parse_LC_RPATH(macho_input_t *input, uint32_t cmd_type, load_command_info_t* load_cmd_info, uint32_t cmdsize);
+        bool parse_LC_DYLIBS(macho_input_t *input, uint32_t cmd_type, load_command_info_t* load_cmd_info, uint32_t cmdsize);
+        bool parse_LC_DYLD_INFOS(macho_input_t *input, uint32_t cmd_type, load_command_info_t* load_cmd_info, uint32_t cmdsize);
         
         // dylib related parsing
         bool parse_binding_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd);
@@ -191,6 +192,7 @@ namespace rotg {
         const NXArchInfo*               m_archInfo;
         bool                            m_is_need_byteswap;
         
+        load_command_infos_t            m_load_command_infos;
         segment_64_infos_t              m_segment_64_infos;
         dylib_infos_t                   m_dylib_infos;
         runpath_additions_infos_t       m_runpath_additions_infos;

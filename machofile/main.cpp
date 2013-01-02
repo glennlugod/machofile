@@ -12,58 +12,13 @@
 
 using namespace rotg;
 
-static void printDylibs(MachOFile& machoFile)
-{
-    const dylib_infos_t& dylib_infos = machoFile.getDylibInfos();
-    
-    dylib_infos_t::const_iterator iter;
-    for (iter=dylib_infos.begin(); iter!=dylib_infos.end(); iter++) {
-        const struct dylib_info& info = *iter;
-        
-        switch (info.cmd_type) {
-            case LC_ID_DYLIB:
-                printf("[dylib] ");
-                break;
-            case LC_LOAD_WEAK_DYLIB:
-                printf("[weak] ");
-                break;
-            case LC_LOAD_DYLIB:
-                printf("[load] ");
-                break;
-            case LC_REEXPORT_DYLIB:
-                printf("[reexport] ");
-                break;
-            default:
-                printf("[%d] ", info.cmd_type);
-                break;
-        }
-        
-        /* This is a dyld library identifier */
-        printf("install_name=%s (compatibility_version=%s, version=%s)\n", info.name, info.compat_version.c_str(), info.current_version.c_str());
-    }
-}
-
-static void printSegments64(MachOFile& machoFile)
-{
-    const segment_64_infos_t& segment_64_infos = machoFile.getSegment64Infos();
-    
-    segment_64_infos_t::const_iterator iter;
-    for (iter=segment_64_infos.begin(); iter!=segment_64_infos.end(); iter++) {
-        const segment_64_info_t& info = *iter;
-        
-        printf("LC_SEGMENT_64 (%s)\n", info.cmd->segname);
-    }
-}
-
 static void printHeader(MachOFile& machoFile)
 {
     if (machoFile.is32()) {
         printf("Type: Mach-O 32-bit\n");
-    }
-    if (machoFile.is64()) {
+    } else if (machoFile.is64()) {
         printf("Type: Mach-O 64-bit\n");
-    }
-    if (machoFile.isUniversal()) {
+    } else if (machoFile.isUniversal()) {
         printf("Type: Universal\n");
     }
     
@@ -71,7 +26,7 @@ static void printHeader(MachOFile& machoFile)
     if (archInfo) {
         printf("Architecture: %s\n\n", archInfo->name);
     }
-
+    
     printf("** Header **\n");
     
     const struct mach_header* header = machoFile.getHeader();
@@ -92,7 +47,7 @@ static void printHeader(MachOFile& machoFile)
         case MH_CIGAM_64:
             printf("MH_CIGAM_64");
             break;
-
+            
         case MH_MAGIC_64:
             printf("MH_MAGIC_64");
             break;
@@ -111,11 +66,11 @@ static void printHeader(MachOFile& machoFile)
         case CPU_TYPE_ANY:
             printf("CPU_TYPE_ANY");
             break;
-        
+            
         case CPU_TYPE_VAX:
             printf("CPU_TYPE_VAX");
             break;
-
+            
         case CPU_TYPE_MC680x0:
             printf("CPU_TYPE_MC680x0");
             break;
@@ -159,17 +114,17 @@ static void printHeader(MachOFile& machoFile)
         case CPU_TYPE_POWERPC64:
             printf("CPU_TYPE_POWERPC64");
             break;
-
+            
         default:
             printf("Unknown");
             break;
     }
     printf("\n");
-
+    
     printf("CPU SubType\n");
     printf("\tOffset: 0x%08llx\n", machoFile.getOffset((void*)&header->cpusubtype));
     printf("\tData  : 0x%X\n", header->cpusubtype);
-
+    
     printf("File Type\n");
     printf("\tOffset: 0x%08llx\n", machoFile.getOffset((void*)&header->filetype));
     printf("\tData  : 0x%X\n", header->filetype);
@@ -246,8 +201,51 @@ static void printHeader(MachOFile& machoFile)
         printf("\tOffset: 0x%08llx\n", machoFile.getOffset((void*)&header64->reserved));
         printf("\tData  : 0x%X\n", header64->reserved);
     }
-
+    
     printf("\n");
+}
+
+static void printSegments64(MachOFile& machoFile)
+{
+    const segment_64_infos_t& segment_64_infos = machoFile.getSegment64Infos();
+    
+    segment_64_infos_t::const_iterator iter;
+    for (iter=segment_64_infos.begin(); iter!=segment_64_infos.end(); iter++) {
+        const segment_64_info_t& info = *iter;
+        
+        printf("LC_SEGMENT_64 (%s)\n", info.cmd->segname);
+    }
+}
+
+static void printDylibs(MachOFile& machoFile)
+{
+    const dylib_infos_t& dylib_infos = machoFile.getDylibInfos();
+    
+    dylib_infos_t::const_iterator iter;
+    for (iter=dylib_infos.begin(); iter!=dylib_infos.end(); iter++) {
+        const struct dylib_info& info = *iter;
+        
+        switch (info.cmd_type) {
+            case LC_ID_DYLIB:
+                printf("[dylib] ");
+                break;
+            case LC_LOAD_WEAK_DYLIB:
+                printf("[weak] ");
+                break;
+            case LC_LOAD_DYLIB:
+                printf("[load] ");
+                break;
+            case LC_REEXPORT_DYLIB:
+                printf("[reexport] ");
+                break;
+            default:
+                printf("[%d] ", info.cmd_type);
+                break;
+        }
+        
+        /* This is a dyld library identifier */
+        printf("install_name=%s (compatibility_version=%s, version=%s)\n", info.name, info.compat_version.c_str(), info.current_version.c_str());
+    }
 }
 
 int main(int argc, const char * argv[])

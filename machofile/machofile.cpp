@@ -104,14 +104,14 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_LC_SEGMENT_64(macho_input_t *input, uint32_t cmd_type, const struct load_command* cmd, uint32_t cmdsize)
+    bool MachOFile::parse_LC_SEGMENT_64(macho_input_t *input, uint32_t cmd_type, load_command_info_t* load_cmd_info, uint32_t cmdsize)
     {
         if (cmdsize < sizeof(struct segment_command_64)) {
             warnx("Incorrect cmd size");
             return false;
         }
         
-        const struct segment_command_64* segment_cmd_64 = (const struct segment_command_64*)cmd;
+        const struct segment_command_64* segment_cmd_64 = (const struct segment_command_64*)load_cmd_info->cmd;
         
         // preserve segment RVA/size for offset lookup
         m_segmentInfo[segment_cmd_64->fileoff] = std::make_pair(segment_cmd_64->vmaddr, segment_cmd_64->vmsize);
@@ -146,7 +146,7 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_LC_RPATH(macho_input_t *input, uint32_t cmd_type, const struct load_command* cmd, uint32_t cmdsize)
+    bool MachOFile::parse_LC_RPATH(macho_input_t *input, uint32_t cmd_type, load_command_info_t* load_cmd_info, uint32_t cmdsize)
     {
         if (cmdsize < sizeof(struct rpath_command)) {
             warnx("Incorrect cmd size");
@@ -155,13 +155,13 @@ namespace rotg {
         
         /* Fetch the path */
         size_t pathlen = cmdsize - sizeof(struct rpath_command);
-        const char* pathptr = (const char*)macho_offset(input, cmd, sizeof(struct rpath_command), pathlen);
+        const char* pathptr = (const char*)macho_offset(input, load_cmd_info->cmd, sizeof(struct rpath_command), pathlen);
         if (pathptr == NULL)
             return false;
         
         struct runpath_additions_info info;
         info.cmd_type = cmd_type;
-        info.cmd = (struct rpath_command*)cmd;
+        info.cmd = (struct rpath_command*)load_cmd_info->cmd;
         info.path = pathptr;
         info.pathlen = pathlen;
         
@@ -170,18 +170,18 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_LC_DYLIBS(macho_input_t *input, uint32_t cmd_type, const struct load_command* cmd, uint32_t cmdsize)
+    bool MachOFile::parse_LC_DYLIBS(macho_input_t *input, uint32_t cmd_type, load_command_info_t* load_cmd_info, uint32_t cmdsize)
     {
         if (cmdsize < sizeof(struct dylib_command)) {
             warnx("Incorrect name size");
             return false;
         }
         
-        const struct dylib_command *dylib_cmd = (const struct dylib_command *)cmd;
+        const struct dylib_command *dylib_cmd = (const struct dylib_command *)load_cmd_info->cmd;
         
         /* Extract the install name */
         size_t namelen = cmdsize - sizeof(struct dylib_command);
-        const char* nameptr = (const char*)macho_offset(input, cmd, sizeof(struct dylib_command), namelen);
+        const char* nameptr = (const char*)macho_offset(input, load_cmd_info->cmd, sizeof(struct dylib_command), namelen);
         if (nameptr == NULL)
             return false;
         
@@ -207,7 +207,6 @@ namespace rotg {
     
     bool MachOFile::parse_binding_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd)
     {
-        
         const uint8_t* baseAddress = (const uint8_t*)macho_offset(input, input->data, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size);
         if (baseAddress == NULL) {
             return false;
@@ -425,14 +424,14 @@ namespace rotg {
         return isDone;
     }
     
-    bool MachOFile::parse_LC_DYLD_INFOS(macho_input_t *input, uint32_t cmd_type, const struct load_command* cmd, uint32_t cmdsize)
+    bool MachOFile::parse_LC_DYLD_INFOS(macho_input_t *input, uint32_t cmd_type, load_command_info_t* load_cmd_info, uint32_t cmdsize)
     {
         if (cmdsize < sizeof(struct dyld_info_command)) {
             warnx("Incorrect name size");
             return false;
         }
         
-        const struct dyld_info_command* dyld_info_cmd = (const struct dyld_info_command*)cmd;
+        const struct dyld_info_command* dyld_info_cmd = (const struct dyld_info_command*)load_cmd_info->cmd;
         
         if (dyld_info_cmd->rebase_off * dyld_info_cmd->rebase_size > 0)
         {
@@ -484,6 +483,11 @@ namespace rotg {
             /* Handle known types */
             uint32_t cmd_type = read32(cmd->cmd);
             
+            load_command_info_t load_cmd_info;
+            load_cmd_info.cmd_type = cmd_type;
+            load_cmd_info.cmd = cmd;
+            load_cmd_info.cmd_info = NULL;
+            
             switch (cmd_type) {
                 case LC_SEGMENT:
                 {
@@ -524,7 +528,7 @@ namespace rotg {
                     
                 case LC_SEGMENT_64:
                 {
-                    if (!parse_LC_SEGMENT_64(input, cmd_type, cmd, cmdsize)) {
+                    if (!parse_LC_SEGMENT_64(input, cmd_type, &load_cmd_info, cmdsize)) {
                         return false;
                     }
                 } break;
@@ -635,7 +639,7 @@ namespace rotg {
                 case LC_LOAD_UPWARD_DYLIB:
 #endif
                 {
-                    if (!parse_LC_DYLIBS(input, cmd_type, cmd, cmdsize)) {
+                    if (!parse_LC_DYLIBS(input, cmd_type, &load_cmd_info, cmdsize)) {
                         return false;
                     }
                 } break;
@@ -668,7 +672,7 @@ namespace rotg {
                     
                 case LC_RPATH:
                 {
-                    if (!parse_LC_RPATH(input, cmd_type, cmd, cmdsize)) {
+                    if (!parse_LC_RPATH(input, cmd_type, &load_cmd_info, cmdsize)) {
                         return false;
                     }
                 } break;
@@ -742,7 +746,7 @@ namespace rotg {
                 case LC_DYLD_INFO:
                 case LC_DYLD_INFO_ONLY:
                 {
-                    if (!parse_LC_DYLD_INFOS(input, cmd_type, cmd, cmdsize)) {
+                    if (!parse_LC_DYLD_INFOS(input, cmd_type, &load_cmd_info, cmdsize)) {
                         return false;
                     }
                 } break;   
@@ -765,6 +769,8 @@ namespace rotg {
                     break;
             }
             
+            m_load_command_infos.push_back(load_cmd_info);
+
             /* Load the next command */
             cmd = (const struct load_command*)macho_offset(input, cmd, cmdsize, sizeof(struct load_command));
             if (cmd == NULL) {
@@ -800,7 +806,6 @@ namespace rotg {
                 if (m_header == NULL) {
                     return false;
                 }
-                //printf("Type: Mach-O 32-bit\n");
                 break;
                 
             case MH_CIGAM_64:
@@ -816,7 +821,6 @@ namespace rotg {
                 /* The 64-bit header is a direct superset of the 32-bit header */
                 m_header = (struct mach_header *)m_header64;
                 
-                //printf("Type: Mach-O 64-bit\n");
                 m_is64 = true;
                 break;
                 
@@ -824,7 +828,6 @@ namespace rotg {
             case FAT_MAGIC:
                 m_fat_header = (const struct fat_header*)macho_read(input, input->data, sizeof(*m_fat_header));
                 m_is_universal = true;
-                //printf("Type: Universal\n");
                 break;
                 
             default:
