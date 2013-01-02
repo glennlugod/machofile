@@ -2,7 +2,7 @@
 //  machofile.h
 //  
 //
-//  Created by Glenn on 12/29/12.
+//  Created by Glenn Lugod on 12/29/12.
 //
 //
 
@@ -69,7 +69,7 @@ namespace rotg {
         const struct segment_command_64*    cmd;
     } segment_64_info_t;
     
-    typedef std::vector<segment_64_info_t> segment_64_infos_t;
+    typedef std::vector<segment_64_info_t*> segment_64_infos_t;
     
     ////////////////////////////////////////////////////////////////////////////////
     
@@ -162,6 +162,10 @@ namespace rotg {
             return m_fat_arch_infos;
         }
         
+        const load_command_infos_t& getLoadCommandInfos() const {
+            return m_load_command_infos;
+        }
+        
     private:
         const void* macho_read(macho_input_t* input, const void *address, size_t length);
         const void* macho_offset(macho_input_t *input, const void *address, size_t offset, size_t length);
@@ -170,10 +174,10 @@ namespace rotg {
         bool parse_universal(macho_input_t *input);
         bool parse_load_commands(macho_input_t *input);
         
-        bool parse_LC_SEGMENT_64(macho_input_t *input, uint32_t cmd_type, load_command_info_t* load_cmd_info, uint32_t cmdsize);
-        bool parse_LC_RPATH(macho_input_t *input, uint32_t cmd_type, load_command_info_t* load_cmd_info, uint32_t cmdsize);
-        bool parse_LC_DYLIBS(macho_input_t *input, uint32_t cmd_type, load_command_info_t* load_cmd_info, uint32_t cmdsize);
-        bool parse_LC_DYLD_INFOS(macho_input_t *input, uint32_t cmd_type, load_command_info_t* load_cmd_info, uint32_t cmdsize);
+        bool parse_LC_SEGMENT_64(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
+        bool parse_LC_RPATH(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
+        bool parse_LC_DYLIBS(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
+        bool parse_LC_DYLD_INFOS(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
         
         // dylib related parsing
         bool parse_binding_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd);

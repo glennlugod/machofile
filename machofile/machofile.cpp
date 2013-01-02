@@ -2,7 +2,7 @@
 //  machofile.cpp
 //  
 //
-//  Created by Glenn on 12/29/12.
+//  Created by Glenn Lugod on 12/29/12.
 //
 //
 
@@ -40,6 +40,11 @@ namespace rotg {
     
     MachOFile::~MachOFile()
     {
+        segment_64_infos_t::iterator iter;
+        for (iter = m_segment_64_infos.begin(); iter != m_segment_64_infos.end(); iter++) {
+            delete *iter;
+        }
+        
         if ((m_data) && (m_data != MAP_FAILED)) {
             munmap(m_data, m_stbuf.st_size);
             m_data = NULL;
@@ -104,7 +109,7 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_LC_SEGMENT_64(macho_input_t *input, uint32_t cmd_type, load_command_info_t* load_cmd_info, uint32_t cmdsize)
+    bool MachOFile::parse_LC_SEGMENT_64(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct segment_command_64)) {
             warnx("Incorrect cmd size");
@@ -137,16 +142,21 @@ namespace rotg {
          */
         }
 
-        segment_64_info_t info;
-        info.cmd_type = cmd_type;
-        info.cmd = segment_cmd_64;
+        segment_64_info_t* info = new segment_64_info_t();
+        if (info == NULL) {
+            return false;
+        }
         
+        info->cmd_type = cmd_type;
+        info->cmd = segment_cmd_64;
+        
+        load_cmd_info->cmd_info = info;
         m_segment_64_infos.push_back(info);
         
         return true;
     }
     
-    bool MachOFile::parse_LC_RPATH(macho_input_t *input, uint32_t cmd_type, load_command_info_t* load_cmd_info, uint32_t cmdsize)
+    bool MachOFile::parse_LC_RPATH(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct rpath_command)) {
             warnx("Incorrect cmd size");
@@ -170,7 +180,7 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_LC_DYLIBS(macho_input_t *input, uint32_t cmd_type, load_command_info_t* load_cmd_info, uint32_t cmdsize)
+    bool MachOFile::parse_LC_DYLIBS(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct dylib_command)) {
             warnx("Incorrect name size");
@@ -424,7 +434,7 @@ namespace rotg {
         return isDone;
     }
     
-    bool MachOFile::parse_LC_DYLD_INFOS(macho_input_t *input, uint32_t cmd_type, load_command_info_t* load_cmd_info, uint32_t cmdsize)
+    bool MachOFile::parse_LC_DYLD_INFOS(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct dyld_info_command)) {
             warnx("Incorrect name size");
@@ -528,7 +538,7 @@ namespace rotg {
                     
                 case LC_SEGMENT_64:
                 {
-                    if (!parse_LC_SEGMENT_64(input, cmd_type, &load_cmd_info, cmdsize)) {
+                    if (!parse_LC_SEGMENT_64(input, cmd_type, cmdsize, &load_cmd_info)) {
                         return false;
                     }
                 } break;
@@ -639,7 +649,7 @@ namespace rotg {
                 case LC_LOAD_UPWARD_DYLIB:
 #endif
                 {
-                    if (!parse_LC_DYLIBS(input, cmd_type, &load_cmd_info, cmdsize)) {
+                    if (!parse_LC_DYLIBS(input, cmd_type, cmdsize, &load_cmd_info)) {
                         return false;
                     }
                 } break;
@@ -672,7 +682,7 @@ namespace rotg {
                     
                 case LC_RPATH:
                 {
-                    if (!parse_LC_RPATH(input, cmd_type, &load_cmd_info, cmdsize)) {
+                    if (!parse_LC_RPATH(input, cmd_type, cmdsize, &load_cmd_info)) {
                         return false;
                     }
                 } break;
@@ -746,7 +756,7 @@ namespace rotg {
                 case LC_DYLD_INFO:
                 case LC_DYLD_INFO_ONLY:
                 {
-                    if (!parse_LC_DYLD_INFOS(input, cmd_type, &load_cmd_info, cmdsize)) {
+                    if (!parse_LC_DYLD_INFOS(input, cmd_type, cmdsize, &load_cmd_info)) {
                         return false;
                     }
                 } break;   

@@ -2,7 +2,7 @@
 //  main.cpp
 //  machofile
 //
-//  Created by Glenn on 12/31/12.
+//  Created by Glenn Lugod on 12/31/12.
 //  Copyright (c) 2012 Glenn. All rights reserved.
 //
 
@@ -205,16 +205,164 @@ static void printHeader(MachOFile& machoFile)
     printf("\n");
 }
 
-static void printSegments64(MachOFile& machoFile)
+static void printSegment64(const segment_64_info_t* info)
 {
-    const segment_64_infos_t& segment_64_infos = machoFile.getSegment64Infos();
+    printf("LC_SEGMENT_64 (%s)\n", info->cmd->segname);
+}
+
+static void printLoadCommands(MachOFile& machofile)
+{
+    printf("** Load Commands **\n");
+    const load_command_infos_t& load_cmd_infos = machofile.getLoadCommandInfos();
     
-    segment_64_infos_t::const_iterator iter;
-    for (iter=segment_64_infos.begin(); iter!=segment_64_infos.end(); iter++) {
-        const segment_64_info_t& info = *iter;
+    load_command_infos_t::const_iterator iter;
+    for (iter = load_cmd_infos.begin(); iter != load_cmd_infos.end(); iter++) {
+        const load_command_info_t& info = *iter;
         
-        printf("LC_SEGMENT_64 (%s)\n", info.cmd->segname);
+        switch (info.cmd_type) {
+            case LC_SEGMENT:
+                printf("LC_SEGMENT (TODO: Details)\n");
+                break;
+                
+            case LC_SEGMENT_64:
+                printSegment64((const segment_64_info_t*)info.cmd_info);
+                break;
+                
+            case LC_SYMTAB:
+                printf("LC_SYMTAB (TODO: Details)\n");
+                break;
+                
+            case LC_DYSYMTAB:
+                printf("LC_DYSYMTAB (TODO: Details)\n");
+                break;
+                
+            case LC_TWOLEVEL_HINTS:
+                printf("LC_TWOLEVEL_HINTS (TODO: Details)\n");
+                break;
+                
+            case LC_ID_DYLINKER:
+                printf("LC_ID_DYLINKER (TODO: Details)\n");
+                break;
+                
+            case LC_LOAD_DYLINKER:
+                printf("LC_LOAD_DYLINKER (TODO: Details)\n");
+                break;
+                
+            case LC_PREBIND_CKSUM:
+                printf("LC_PREBIND_CKSUM (TODO: Details)\n");
+                break;
+                
+            case LC_UUID:
+                printf("LC_UUID (TODO: Details)\n");
+                break;
+                
+            case LC_THREAD:
+                printf("LC_THREAD (TODO: Details)\n");
+                break;
+                
+            case LC_UNIXTHREAD:
+                printf("LC_UNIXTHREAD (TODO: Details)\n");
+                break;
+                
+            case LC_ID_DYLIB:
+                printf("LC_ID_DYLIB (TODO: Details)\n");
+                break;
+                
+            case LC_LOAD_DYLIB:
+                printf("LC_LOAD_DYLIB (TODO: Details)\n");
+                break;
+                
+            case LC_LOAD_WEAK_DYLIB:
+                printf("LC_LOAD_WEAK_DYLIB (TODO: Details)\n");
+                break;
+
+            case LC_REEXPORT_DYLIB:
+                printf("LC_REEXPORT_DYLIB (TODO: Details)\n");
+                break;
+                
+            case LC_LAZY_LOAD_DYLIB:
+                printf("LC_LAZY_LOAD_DYLIB (TODO: Details)\n");
+                break;
+                
+#ifdef __MAC_10_7
+            case LC_LOAD_UPWARD_DYLIB:
+                printf("LC_LOAD_UPWARD_DYLIB (TODO: Details)\n");
+                break;
+#endif
+                
+            case LC_CODE_SIGNATURE:
+                printf("LC_CODE_SIGNATURE (TODO: Details)\n");
+                break;
+                
+            case LC_SEGMENT_SPLIT_INFO:
+                printf("LC_SEGMENT_SPLIT_INFO (TODO: Details)\n");
+                break;
+
+#ifdef __MAC_10_7
+            case LC_FUNCTION_STARTS:
+                printf("LC_FUNCTION_STARTS (TODO: Details)\n");
+                break;
+#endif
+                
+            case LC_ENCRYPTION_INFO:
+                printf("LC_ENCRYPTION_INFO (TODO: Details)\n");
+                break;
+                
+            case LC_RPATH:
+                printf("LC_RPATH (TODO: Details)\n");
+                break;
+                
+            case LC_ROUTINES:
+                printf("LC_ROUTINES (TODO: Details)\n");
+                break;
+                
+            case LC_ROUTINES_64:
+                printf("LC_ROUTINES_64 (TODO: Details)\n");
+                break;
+                
+            case LC_SUB_FRAMEWORK:
+                printf("LC_SUB_FRAMEWORK (TODO: Details)\n");
+                break;
+                
+            case LC_SUB_UMBRELLA:
+                printf("LC_SUB_UMBRELLA (TODO: Details)\n");
+                break;
+                
+            case LC_SUB_CLIENT:
+                printf("LC_SUB_CLIENT (TODO: Details)\n");
+                break;
+                
+            case LC_SUB_LIBRARY:
+                printf("LC_SUB_LIBRARY (TODO: Details)\n");
+                break;
+                
+            case LC_DYLD_INFO:
+                printf("LC_DYLD_INFO (TODO: Details)\n");
+                break;
+                
+            case LC_DYLD_INFO_ONLY:
+                printf("LC_DYLD_INFO_ONLY (TODO: Details)\n");
+                break;
+                
+#ifdef __MAC_10_7
+            case LC_VERSION_MIN_MACOSX:
+                printf("LC_VERSION_MIN_MACOSX (TODO: Details)\n");
+                break;
+                
+            case LC_VERSION_MIN_IPHONEOS:
+                printf("LC_VERSION_MIN_IPHONEOS (TODO: Details)\n");
+                break;
+#endif
+            
+            default:
+                printf("Unsupported/Unknown command\n");
+                printf("\tType        : 0x%X\n", info.cmd_type);
+                printf("\tCommand Size: %d\n", info.cmd->cmdsize);
+                break;
+        }
     }
+    
+    printf("\n");
 }
 
 static void printDylibs(MachOFile& machoFile)
@@ -249,12 +397,12 @@ static void printDylibs(MachOFile& machoFile)
 }
 
 int main(int argc, const char * argv[])
-{    
+{
     MachOFile machoFile;
     
     if (machoFile.parse_file(argv[1])) {
         printHeader(machoFile);
-        printSegments64(machoFile);
+        printLoadCommands(machoFile);
         printDylibs(machoFile);
     }
     else
