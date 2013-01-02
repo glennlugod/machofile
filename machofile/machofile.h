@@ -18,12 +18,18 @@
 
 #include <unistd.h>
 
-#include <list>
 #include <string>
 #include <vector>
 #include <map>
 
 namespace rotg {
+    
+    struct load_command_info {
+        uint32_t cmd_type;		/* type of load command */
+        const struct load_command* cmd;
+    };
+    
+    typedef std::vector<load_command_info> load_commands_info_t;
     
     typedef struct dylib_info {
         uint32_t                    cmd_type;
@@ -34,8 +40,8 @@ namespace rotg {
         std::string                 compat_version;
     } dylib_info_t;
     
-    typedef std::list<dylib_info_t> dylib_infos_t;
-
+    typedef std::vector<dylib_info_t> dylib_infos_t;
+    
     typedef struct runpath_additions_info {
         uint32_t                    cmd_type;
         const struct rpath_command* cmd;
@@ -43,7 +49,7 @@ namespace rotg {
         size_t                      pathlen;
     } runpath_additions_info_t;
     
-    typedef std::list<runpath_additions_info_t> runpath_additions_infos_t;
+    typedef std::vector<runpath_additions_info_t> runpath_additions_infos_t;
     
     typedef struct macho_input {
         const void* data;
@@ -55,14 +61,14 @@ namespace rotg {
         macho_input_t           input;
     } fat_arch_info_t;
     
-    typedef std::list<fat_arch_info_t> fat_arch_infos_t;
+    typedef std::vector<fat_arch_info_t> fat_arch_infos_t;
     
     typedef struct segment_64_info {
         uint32_t                            cmd_type;
         const struct segment_command_64*    cmd;
     } segment_64_info_t;
     
-    typedef std::list<segment_64_info_t> segment_64_infos_t;
+    typedef std::vector<segment_64_info_t> segment_64_infos_t;
     
     ////////////////////////////////////////////////////////////////////////////////
     
@@ -96,6 +102,8 @@ namespace rotg {
         
         bool parse_macho(macho_input_t *input);
         bool parse_file(const char* path);
+        
+        uint64_t getOffset(void* address); 
         
         uint32_t read32(uint32_t input) const {
             if (isNeedByteSwap()) {
@@ -170,8 +178,9 @@ namespace rotg {
         bool parse_binding_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd);
         
         int                             m_fd;
-        void*                           m_data;
         struct stat                     m_stbuf;
+        void*                           m_data;
+        const void*                     m_baseAddress;
         
         const struct mach_header*       m_header;
         const struct mach_header_64*    m_header64;

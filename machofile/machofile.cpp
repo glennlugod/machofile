@@ -26,6 +26,7 @@ namespace rotg {
     MachOFile::MachOFile()
         : m_fd(-1)
         , m_data(NULL)
+        , m_baseAddress(NULL)
         , m_header(NULL)
         , m_header64(NULL)
         , m_header_size(0)
@@ -98,13 +99,6 @@ namespace rotg {
             fat_arch_info.input.data = data;
             
             m_fat_arch_infos.push_back(fat_arch_info);
-            
-            /*
-             / * Parse the architecture's Mach-O header * /
-             printf("\n");
-             if (!parse_macho(&arch_input))
-             return false;
-             */
         }
         
         return true;
@@ -597,7 +591,7 @@ namespace rotg {
                                      dylinker_command:dylinker_command];
                     */
                 } break;
-                    
+                
                 case LC_PREBIND_CKSUM:
                 {
                     /*
@@ -608,7 +602,7 @@ namespace rotg {
                                      prebind_cksum_command:prebind_cksum_command];
                     */
                 } break;
-                    
+                
                 case LC_UUID:
                 {
                     /*
@@ -619,7 +613,7 @@ namespace rotg {
                                      uuid_command:uuid_command];
                     */
                 } break;
-                    
+                
                 case LC_THREAD:
                 case LC_UNIXTHREAD:
                 {
@@ -631,13 +625,15 @@ namespace rotg {
                                      thread_command:thread_command];
                     */
                 } break;
-                    
+                
                 case LC_ID_DYLIB:
                 case LC_LOAD_DYLIB:
                 case LC_LOAD_WEAK_DYLIB:
                 case LC_REEXPORT_DYLIB:
                 case LC_LAZY_LOAD_DYLIB:
+#ifdef __MAC_10_7
                 case LC_LOAD_UPWARD_DYLIB:
+#endif
                 {
                     if (!parse_LC_DYLIBS(input, cmd_type, cmd, cmdsize)) {
                         return false;
@@ -646,7 +642,9 @@ namespace rotg {
                 
                 case LC_CODE_SIGNATURE:
                 case LC_SEGMENT_SPLIT_INFO:
+#ifdef __MAC_10_7
                 case LC_FUNCTION_STARTS:
+#endif
                 {
                     /*
                     MATCH_STRUCT(linkedit_data_command,location)
@@ -740,7 +738,7 @@ namespace rotg {
                                     sub_library_command:sub_library_command];
                     */
                 } break; 
-                    
+                
                 case LC_DYLD_INFO:
                 case LC_DYLD_INFO_ONLY:
                 {
@@ -748,7 +746,8 @@ namespace rotg {
                         return false;
                     }
                 } break;   
-                    
+                
+#ifdef __MAC_10_7
                 case LC_VERSION_MIN_MACOSX:
                 case LC_VERSION_MIN_IPHONEOS:
                 {
@@ -760,7 +759,8 @@ namespace rotg {
                                     version_min_command:version_min_command];
                     */
                 } break;
-                    
+#endif
+                
                 default:
                     break;
             }
@@ -775,8 +775,15 @@ namespace rotg {
         return true;
     }
     
+    uint64_t MachOFile::getOffset(void* address)
+    {
+        return (uint8_t*)address - (uint8_t*)m_baseAddress;
+    }
+    
     /* Parse a Mach-O header */
     bool MachOFile::parse_macho(macho_input_t *input) {
+        m_baseAddress = input->data;
+        
         /* Read the file type. */
         const uint32_t* magic = (const uint32_t*)macho_read(input, input->data, sizeof(uint32_t));
         if (magic == NULL)
