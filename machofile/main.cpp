@@ -79,92 +79,173 @@ static void printHeader(MachOFile& machoFile)
     printf("Magic Number\n");
     printf("\tOffset: 0x%08llx\n", machoFile.getOffset((void*)&header->magic));
     printf("\tData  : 0x%X\n", header->magic);
+    printf("\tValue : ");
     switch (header->magic) {            
         case MH_CIGAM:
-            printf("\tValue : MH_CIGAM\n");
+            printf("MH_CIGAM");
             break;
             
         case MH_MAGIC:
-            printf("\tValue : MH_MAGIC\n");
+            printf("MH_MAGIC");
             break;
             
         case MH_CIGAM_64:
-            printf("\tValue : MH_CIGAM_64\n");
+            printf("MH_CIGAM_64");
             break;
 
         case MH_MAGIC_64:
-            printf("\tValue : MH_MAGIC_64\n");
+            printf("MH_MAGIC_64");
             break;
             
         default:
-            printf("\tValue : Unknown\n");
+            printf("Unknown");
             break;
     }
+    printf("\n");
     
     printf("CPU Type\n");
     printf("\tOffset: 0x%08llx\n", machoFile.getOffset((void*)&header->cputype));
     printf("\tData  : 0x%X\n", header->cputype);
+    printf("\tValue : ");
     switch (header->cputype) {
         case CPU_TYPE_ANY:
-            printf("\tValue : CPU_TYPE_ANY\n");
+            printf("CPU_TYPE_ANY");
             break;
         
         case CPU_TYPE_VAX:
-            printf("\tValue : CPU_TYPE_VAX\n");
+            printf("CPU_TYPE_VAX");
             break;
 
         case CPU_TYPE_MC680x0:
-            printf("\tValue : CPU_TYPE_MC680x0\n");
+            printf("CPU_TYPE_MC680x0");
             break;
             
         case CPU_TYPE_X86:
-            printf("\tValue : CPU_TYPE_X86\n");
+            printf("CPU_TYPE_X86");
             break;
             
         case CPU_TYPE_X86_64:
-            printf("\tValue : CPU_TYPE_X86_64\n");
+            printf("CPU_TYPE_X86_64");
             break;
             
         case CPU_TYPE_MC98000:
-            printf("\tValue : CPU_TYPE_MC98000\n");
+            printf("CPU_TYPE_MC98000");
             break;
             
         case CPU_TYPE_HPPA:
-            printf("\tValue : CPU_TYPE_HPPA\n");
+            printf("CPU_TYPE_HPPA");
             break;
             
         case CPU_TYPE_ARM:
-            printf("\tValue : CPU_TYPE_ARM\n");
+            printf("CPU_TYPE_ARM");
             break;
             
         case CPU_TYPE_MC88000:
-            printf("\tValue : CPU_TYPE_MC88000\n");
+            printf("CPU_TYPE_MC88000");
             break;
             
         case CPU_TYPE_SPARC:
-            printf("\tValue : CPU_TYPE_SPARC\n");
+            printf("CPU_TYPE_SPARC");
             break;
             
         case CPU_TYPE_I860:
-            printf("\tValue : CPU_TYPE_I860\n");
+            printf("CPU_TYPE_I860");
             break;
             
         case CPU_TYPE_POWERPC:
-            printf("\tValue : CPU_TYPE_POWERPC\n");
+            printf("CPU_TYPE_POWERPC");
             break;
             
         case CPU_TYPE_POWERPC64:
-            printf("\tValue : CPU_TYPE_POWERPC64\n");
+            printf("CPU_TYPE_POWERPC64");
             break;
 
         default:
-            printf("\tValue : Unknown\n");
+            printf("Unknown");
             break;
     }
+    printf("\n");
 
     printf("CPU SubType\n");
     printf("\tOffset: 0x%08llx\n", machoFile.getOffset((void*)&header->cpusubtype));
     printf("\tData  : 0x%X\n", header->cpusubtype);
+
+    printf("File Type\n");
+    printf("\tOffset: 0x%08llx\n", machoFile.getOffset((void*)&header->filetype));
+    printf("\tData  : 0x%X\n", header->filetype);
+    printf("\tValue : ");
+    switch (header->filetype) {
+        case MH_OBJECT:
+            printf("MH_OBJECT");
+            break;
+            
+        case MH_EXECUTE:
+            printf("MH_EXECUTE");
+            break;
+            
+        case MH_FVMLIB:
+            printf("MH_FVMLIB");
+            break;
+            
+        case MH_CORE:
+            printf("MH_CORE");
+            break;
+            
+        case MH_PRELOAD:
+            printf("MH_PRELOAD");
+            break;
+            
+        case MH_DYLIB:
+            printf("MH_DYLIB");
+            break;
+            
+        case MH_DYLINKER:
+            printf("MH_DYLINKER");
+            break;
+            
+        case MH_BUNDLE:
+            printf("MH_BUNDLE");
+            break;
+            
+        case MH_DYLIB_STUB:
+            printf("MH_DYLIB_STUB");
+            break;
+            
+        case MH_DSYM:
+            printf("MH_DSYM");
+            break;
+            
+        case MH_KEXT_BUNDLE:
+            printf("MH_KEXT_BUNDLE");
+            break;
+            
+        default:
+            printf("Unknown");
+            break;
+    }
+    printf("\n");
+    
+    printf("Number of Load Commands\n");
+    printf("\tOffset: 0x%08llx\n", machoFile.getOffset((void*)&header->ncmds));
+    printf("\tData  : 0x%X\n", header->ncmds);
+    printf("\tValue : %d\n", header->ncmds);
+    
+    printf("Size of Load Commands\n");
+    printf("\tOffset: 0x%08llx\n", machoFile.getOffset((void*)&header->sizeofcmds));
+    printf("\tData  : 0x%X\n", header->sizeofcmds);
+    printf("\tValue : %d\n", header->sizeofcmds);
+    
+    printf("Flags\n");
+    printf("\tOffset: 0x%08llx\n", machoFile.getOffset((void*)&header->flags));
+    printf("\tData  : 0x%X\n", header->flags);
+    
+    if (machoFile.is64()) {
+        const struct mach_header_64* header64 = machoFile.getHeader64();
+        
+        printf("Reserved\n");
+        printf("\tOffset: 0x%08llx\n", machoFile.getOffset((void*)&header64->reserved));
+        printf("\tData  : 0x%X\n", header64->reserved);
+    }
 
     printf("\n");
 }
