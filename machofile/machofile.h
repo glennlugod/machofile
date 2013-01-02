@@ -64,9 +64,12 @@ namespace rotg {
     
     typedef std::vector<fat_arch_info_t> fat_arch_infos_t;
     
+    typedef std::vector<const struct section_64*> section_64s_t;
+    
     typedef struct segment_64_info {
         uint32_t                            cmd_type;
         const struct segment_command_64*    cmd;
+        section_64s_t                       section_64s;
     } segment_64_info_t;
     
     typedef std::vector<segment_64_info_t*> segment_64_infos_t;
@@ -104,7 +107,7 @@ namespace rotg {
         bool parse_macho(macho_input_t *input);
         bool parse_file(const char* path);
         
-        uint64_t getOffset(void* address); 
+        uint64_t getOffset(void* address);
         
         uint32_t read32(uint32_t input) const {
             if (isNeedByteSwap()) {
@@ -166,6 +169,10 @@ namespace rotg {
             return m_load_command_infos;
         }
         
+        const section_64s_t& getSection64s() const {
+            return m_section_64s;
+        }
+        
     private:
         const void* macho_read(macho_input_t* input, const void *address, size_t length);
         const void* macho_offset(macho_input_t *input, const void *address, size_t offset, size_t length);
@@ -201,6 +208,7 @@ namespace rotg {
         dylib_infos_t                   m_dylib_infos;
         runpath_additions_infos_t       m_runpath_additions_infos;
         fat_arch_infos_t                m_fat_arch_infos;
+        section_64s_t                   m_section_64s;
         
         SegmentInfoMap                  m_segmentInfo;      // segment info lookup table by offset
     };

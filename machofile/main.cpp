@@ -27,7 +27,7 @@ static void printHeader(MachOFile& machoFile)
         printf("Architecture: %s\n\n", archInfo->name);
     }
     
-    printf("** Header **\n");
+    printf("***** Header *****\n");
     
     const struct mach_header* header = machoFile.getHeader();
     
@@ -205,14 +205,70 @@ static void printHeader(MachOFile& machoFile)
     printf("\n");
 }
 
-static void printSegment64(const segment_64_info_t* info)
+static void printSegment64(MachOFile& machofile, const segment_64_info_t* info)
 {
     printf("LC_SEGMENT_64 (%s)\n", info->cmd->segname);
+    
+    printf("\tCommand\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->cmd));
+    printf("\t\tData  : 0x%X\n", info->cmd->cmd);
+    printf("\t\tValue : LC_SEGMENT_64\n");
+    
+    printf("\tCommand Size\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->cmdsize));
+    printf("\t\tData  : 0x%X\n", info->cmd->cmdsize);
+    printf("\t\tValue : %d\n", info->cmd->cmdsize);
+    
+    printf("\tSegment Name\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->segname));
+    printf("\t\tValue : %s\n", info->cmd->segname);
+    
+    printf("\tVM Address\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->vmaddr));
+    printf("\t\tData  : 0x%llX\n", info->cmd->vmaddr);
+    printf("\t\tValue : %lld\n", info->cmd->vmaddr);
+    
+    printf("\tVM Size\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->vmsize));
+    printf("\t\tData  : 0x%llX\n", info->cmd->vmsize);
+    printf("\t\tValue : %lld\n", info->cmd->vmsize);
+    
+    printf("\tFile Offset\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->fileoff));
+    printf("\t\tData  : 0x%llX\n", info->cmd->fileoff);
+    printf("\t\tValue : %lld\n", info->cmd->fileoff);
+    
+    printf("\tFile Size\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->filesize));
+    printf("\t\tData  : 0x%llX\n", info->cmd->filesize);
+    printf("\t\tValue : %lld\n", info->cmd->filesize);
+    
+    printf("\tMaximum VM Protection\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->maxprot));
+    printf("\t\tData  : 0x%X\n", info->cmd->maxprot);
+    printf("\t\tValue : 0x%X\n", info->cmd->maxprot);
+    
+    printf("\tInitial VM Protection\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->initprot));
+    printf("\t\tData  : 0x%X\n", info->cmd->initprot);
+    printf("\t\tValue : 0x%X\n", info->cmd->initprot);
+    
+    printf("\tNumber of Sections\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->nsects));
+    printf("\t\tData  : 0x%X\n", info->cmd->nsects);
+    printf("\t\tValue : %d\n", info->cmd->nsects);
+    
+    printf("\tFlags\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->flags));
+    printf("\t\tData  : 0x%X\n", info->cmd->flags);
+    printf("\t\tValue : 0x%X\n", info->cmd->flags);
+    
+    printf("\n");
 }
 
 static void printLoadCommands(MachOFile& machofile)
 {
-    printf("** Load Commands **\n");
+    printf("***** Load Commands *****\n");
     const load_command_infos_t& load_cmd_infos = machofile.getLoadCommandInfos();
     
     load_command_infos_t::const_iterator iter;
@@ -225,7 +281,7 @@ static void printLoadCommands(MachOFile& machofile)
                 break;
                 
             case LC_SEGMENT_64:
-                printSegment64((const segment_64_info_t*)info.cmd_info);
+                printSegment64(machofile, (const segment_64_info_t*)info.cmd_info);
                 break;
                 
             case LC_SYMTAB:

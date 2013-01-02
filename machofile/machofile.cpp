@@ -121,27 +121,6 @@ namespace rotg {
         // preserve segment RVA/size for offset lookup
         m_segmentInfo[segment_cmd_64->fileoff] = std::make_pair(segment_cmd_64->vmaddr, segment_cmd_64->vmsize);
         
-        // Section Headers
-        for (uint32_t nsect = 0; nsect < segment_cmd_64->nsects; ++nsect)
-        {
-        /*
-             uint32_t sectionloc = location + sizeof(struct segment_command_64) + nsect * sizeof(struct section_64);
-             MATCH_STRUCT(section_64,sectionloc)
-             [self createSection64Node:node
-             caption:[NSString stringWithFormat:@"Section64 Header (%s)",
-             string(section_64->sectname,16).c_str()]
-             location:sectionloc
-             section_64:section_64];
-             
-             // preserv section fileOffset/sectName for RVA lookup
-             NSDictionary * userInfo = [self userInfoForSection64:section_64];
-             insertChild[section_64->addr] = make_pair(section_64->offset + imageOffset, userInfo);
-             
-             // preserv header info for latter use
-             sections_64.push_back(section_64);
-         */
-        }
-
         segment_64_info_t* info = new segment_64_info_t();
         if (info == NULL) {
             return false;
@@ -150,8 +129,21 @@ namespace rotg {
         info->cmd_type = cmd_type;
         info->cmd = segment_cmd_64;
         
-        load_cmd_info->cmd_info = info;
         m_segment_64_infos.push_back(info);
+        
+        // Section Headers
+        for (uint32_t nsect = 0; nsect < segment_cmd_64->nsects; ++nsect)
+        {
+            const struct section_64* section = (const struct section_64*)macho_offset(input, segment_cmd_64, sizeof(struct segment_command_64) + nsect * sizeof(struct section_64), sizeof(struct section_64));
+            if (section == NULL) {
+                return false;
+            }
+            
+            info->section_64s.push_back(section);
+            m_section_64s.push_back(section);
+        }
+        
+        load_cmd_info->cmd_info = info;
         
         return true;
     }
