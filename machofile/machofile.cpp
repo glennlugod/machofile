@@ -207,7 +207,7 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_binding_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd)
+    bool MachOFile::parse_rebase_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd)
     {
         const uint8_t* baseAddress = (const uint8_t*)macho_offset(input, input->data, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size);
         if (baseAddress == NULL) {
@@ -426,6 +426,307 @@ namespace rotg {
         return isDone;
     }
     
+    bool MachOFile::parse_binding_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd, BindNodeType nodeType)
+    {
+        const uint8_t* baseAddress = (const uint8_t*)macho_offset(input, input->data, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size);
+        if (baseAddress == NULL) {
+            return false;
+        }
+        
+        const uint8_t* ptr = baseAddress;
+        const uint8_t* endAddress = baseAddress + dyld_info_cmd->bind_size;
+        
+        const uint8_t* address = baseAddress;
+        bool isDone = false;
+        
+        while ((ptr < endAddress) && !isDone) {
+            uint8_t opcode = *ptr & REBASE_OPCODE_MASK;
+            uint8_t immediate = *ptr & REBASE_IMMEDIATE_MASK;
+            
+            switch (opcode)
+            {
+                case BIND_OPCODE_DONE:
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"BIND_OPCODE_DONE"
+//                                           :@""];
+//                    
+//                    // The lazy bindings have one of these at the end of each bind.
+                    if (nodeType != NodeTypeLazyBind)
+                    {
+                        isDone = true;
+                    }
+                    
+//                    doBindLocation = NSMaxRange(range);
+                    
+                    break;
+                    
+                case BIND_OPCODE_SET_DYLIB_ORDINAL_IMM:
+//                    libOrdinal = immediate;
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"BIND_OPCODE_SET_DYLIB_ORDINAL_IMM"
+//                                           :[NSString stringWithFormat:@"dylib (%d)",libOrdinal]];
+                    break;
+                    
+                case BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB:
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB"
+//                                           :@""];
+//                    
+//                    libOrdinal = [self read_uleb128:range lastReadHex:&lastReadHex];
+//                    
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"uleb128"
+//                                           :[NSString stringWithFormat:@"dylib (%d)",libOrdinal]];
+                    break;
+                    
+                case BIND_OPCODE_SET_DYLIB_SPECIAL_IMM:
+                {
+                    // Special means negative
+//                    if (immediate == 0)
+//                    {
+//                        libOrdinal = 0;
+//                    }
+//                    else
+//                    {
+//                        int8_t signExtended = immediate | BIND_OPCODE_MASK; // This sign extends the value
+//                        
+//                        libOrdinal = signExtended;
+//                    }
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"BIND_OPCODE_SET_DYLIB_SPECIAL_IMM"
+//                                           :[NSString stringWithFormat:@"dylib (%d)",libOrdinal]];
+                } break;
+                    
+                case BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM:
+//                    symbolFlags = immediate;
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM"
+//                                           :[NSString stringWithFormat:@"flags (%u)",((uint32_t)-1 & symbolFlags)]];
+//                    
+//                    symbolName = [self read_string:range lastReadHex:&lastReadHex];
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"string"
+//                                           :[NSString stringWithFormat:@"name (%@)",symbolName]];
+                    break;
+                    
+                case BIND_OPCODE_SET_TYPE_IMM:
+//                    type = immediate;
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"BIND_OPCODE_SET_TYPE_IMM"
+//                                           :[NSString stringWithFormat:@"type (%@)",
+//                                             type == BIND_TYPE_POINTER ? @"BIND_TYPE_POINTER" :
+//                                             type == BIND_TYPE_TEXT_ABSOLUTE32 ? @"BIND_TYPE_TEXT_ABSOLUTE32" :
+//                                             type == BIND_TYPE_TEXT_PCREL32 ? @"BIND_TYPE_TEXT_PCREL32" : @"???"]];
+                    break;
+                    
+                case BIND_OPCODE_SET_ADDEND_SLEB:
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"BIND_OPCODE_SET_ADDEND_SLEB"
+//                                           :@""];
+//                    
+//                    addend = [self read_sleb128:range lastReadHex:&lastReadHex];
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"sleb128"
+//                                           :[NSString stringWithFormat:@"addend (%qi)",addend]];
+                    break;
+                    
+                case BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
+                {
+//                    uint32_t segmentIndex = immediate;
+//                    
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB"
+//                                           :[NSString stringWithFormat:@"segment (%u)",segmentIndex]];
+//                    
+//                    uint64_t val = [self read_uleb128:range lastReadHex:&lastReadHex];
+//                    
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"uleb128"
+//                                           :[NSString stringWithFormat:@"offset (%qi)",val]];
+//                    
+//                    if (([self is64bit] == NO && segmentIndex >= segments.size()) ||
+//                        ([self is64bit] == YES && segmentIndex >= segments_64.size()))
+//                    {
+//                        [NSException raise:@"Segment"
+//                                    format:@"index is out of range %u", segmentIndex];
+//                    }
+//                    
+//                    address = ([self is64bit] == NO ? segments.at(segmentIndex)->vmaddr
+//                               : segments_64.at(segmentIndex)->vmaddr) + val;
+                } break;
+                    
+                case BIND_OPCODE_ADD_ADDR_ULEB:
+                {
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"BIND_OPCODE_ADD_ADDR_ULEB"
+//                                           :@""];
+//                    
+//                    uint64_t val = [self read_uleb128:range lastReadHex:&lastReadHex];
+//                    
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"uleb128"
+//                                           :[NSString stringWithFormat:@"offset (%qi)",val]];
+//                    
+//                    address += val;
+                } break;
+                    
+                case BIND_OPCODE_DO_BIND:
+                {
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"BIND_OPCODE_DO_BIND"
+//                                           :@""];
+//                    
+//                    [node.details setAttributes:MVUnderlineAttributeName,@"YES",nil];
+//                    
+//                    [self bindAddress:address
+//                                 type:type
+//                           symbolName:symbolName
+//                                flags:symbolFlags
+//                               addend:addend
+//                       libraryOrdinal:libOrdinal
+//                                 node:actionNode
+//                             nodeType:nodeType
+//                             location:doBindLocation
+//                           dyldHelper:helper
+//                              ptrSize:ptrSize];
+//                    
+//                    doBindLocation = NSMaxRange(range);
+//                    
+//                    address += ptrSize;
+                } break;
+                    
+                case BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB:
+                {
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB"
+//                                           :@""];
+//                    
+//                    uint32_t startNextBind = NSMaxRange(range);
+//                    
+//                    uint64_t val = [self read_uleb128:range lastReadHex:&lastReadHex];
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"uleb128"
+//                                           :[NSString stringWithFormat:@"offset (%qi)",val]];
+//                    
+//                    [node.details setAttributes:MVUnderlineAttributeName,@"YES",nil];
+//                    
+//                    [self bindAddress:address
+//                                 type:type
+//                           symbolName:symbolName
+//                                flags:symbolFlags
+//                               addend:addend
+//                       libraryOrdinal:libOrdinal
+//                                 node:actionNode
+//                             nodeType:nodeType
+//                             location:doBindLocation
+//                           dyldHelper:helper
+//                              ptrSize:ptrSize];
+//                    
+//                    doBindLocation = startNextBind;
+//                    
+//                    address += ptrSize + val;
+                } break;
+                    
+                case BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED:
+                {
+//                    uint32_t scale = immediate;
+//                    
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED"
+//                                           :[NSString stringWithFormat:@"scale (%u)",scale]];
+//                    
+//                    [node.details setAttributes:MVUnderlineAttributeName,@"YES",nil];
+//                    
+//                    [self bindAddress:address 
+//                                 type:type 
+//                           symbolName:symbolName 
+//                                flags:symbolFlags 
+//                               addend:addend 
+//                       libraryOrdinal:libOrdinal 
+//                                 node:actionNode
+//                             nodeType:nodeType
+//                             location:doBindLocation
+//                           dyldHelper:helper
+//                              ptrSize:ptrSize];
+//                    
+//                    doBindLocation = NSMaxRange(range);
+//                    
+//                    address += ptrSize + scale * ptrSize;
+                } break;
+                    
+                case BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB: 
+                {
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB"
+//                                           :@""];
+//                    
+//                    uint32_t startNextBind = NSMaxRange(range);
+//                    
+//                    uint64_t count = [self read_uleb128:range lastReadHex:&lastReadHex];
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"uleb128"
+//                                           :[NSString stringWithFormat:@"count (%qu)",count]];
+//                    
+//                    uint64_t skip = [self read_uleb128:range lastReadHex:&lastReadHex];
+//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
+//                                           :lastReadHex
+//                                           :@"uleb128"
+//                                           :[NSString stringWithFormat:@"skip (%qu)",skip]];
+//                    
+//                    [node.details setAttributes:MVUnderlineAttributeName,@"YES",nil];
+//                    
+//                    for (uint64_t index = 0; index < count; index++) 
+//                    {
+//                        [self bindAddress:address 
+//                                     type:type 
+//                               symbolName:symbolName 
+//                                    flags:symbolFlags 
+//                                   addend:addend 
+//                           libraryOrdinal:libOrdinal 
+//                                     node:actionNode
+//                                 nodeType:nodeType
+//                                 location:doBindLocation
+//                               dyldHelper:helper
+//                                  ptrSize:ptrSize];
+//                        
+//                        doBindLocation = startNextBind;
+//                        
+//                        address += ptrSize + skip;
+//                    }
+                } break;
+                    
+                default:
+//                    [NSException raise:@"Bind info" format:@"Unknown opcode (%u %u)", 
+//                     ((uint32_t)-1 & opcode), ((uint32_t)-1 & immediate)];
+                    break;
+            }
+            
+            ptr++;
+        }
+        
+        return true;
+    }
+    
     bool MachOFile::parse_LC_DYLD_INFOS(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct dyld_info_command)) {
@@ -438,13 +739,16 @@ namespace rotg {
         if (dyld_info_cmd->rebase_off * dyld_info_cmd->rebase_size > 0)
         {
             // TODO: createRebaseNode
+            /*
+            if (!parse_rebase_node(input, dyld_info_cmd)) {
+                return false;
+            }
+            */
         }
         
         if (dyld_info_cmd->bind_off * dyld_info_cmd->bind_size > 0)
         {
-            if (!parse_binding_node(input, dyld_info_cmd)) {
-                return false;
-            }
+            parse_binding_node(input, dyld_info_cmd, NodeTypeBind);
         }
         
         if (dyld_info_cmd->weak_bind_off * dyld_info_cmd->weak_bind_size > 0)

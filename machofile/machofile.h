@@ -74,6 +74,35 @@ namespace rotg {
     
     typedef std::vector<segment_64_info_t*> segment_64_infos_t;
     
+    typedef struct bind_opcode {
+        uint8_t opcode;
+        uint8_t immediate;
+    } bind_opcode_t;
+    
+    typedef struct binding_info {
+        std::vector<bind_opcode_t> opcodes;
+    } binding_info_t;
+    
+    typedef struct lazy_binding_info {
+        std::vector<bind_opcode_t> opcodes;
+    } lazy_binding_info_t;
+    
+    typedef struct export_info {
+        std::vector<bind_opcode_t> opcodes;
+    } export_info_t;
+    
+    typedef struct dynamic_loader_info {
+        binding_info_t      binding_info;
+        lazy_binding_info_t lazy_binding_info;
+        export_info_t       export_info;
+    } dynamic_loader_info_t;
+    
+    typedef struct dylib_info_command_info {
+        uint32_t                        cmd_type;
+        const struct dyld_info_command* cmd;
+        dynamic_loader_info_t*          dynamic_loader_info;
+    } dyld_info_command_info_t;
+    
     ////////////////////////////////////////////////////////////////////////////////
     
     /*
@@ -187,7 +216,10 @@ namespace rotg {
         bool parse_LC_DYLD_INFOS(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
         
         // dylib related parsing
-        bool parse_binding_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd);
+        enum BindNodeType {NodeTypeBind, NodeTypeWeakBind, NodeTypeLazyBind};
+        
+        bool parse_rebase_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd);
+        bool parse_binding_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd, BindNodeType nodeType);
         
         int                             m_fd;
         struct stat                     m_stbuf;
