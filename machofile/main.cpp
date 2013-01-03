@@ -27,7 +27,7 @@ static void printHeader(MachOFile& machoFile)
         printf("Architecture: %s\n\n", archInfo->name);
     }
     
-    printf("***** Header *****\n");
+    printf("\n***** Header *****\n");
     
     const struct mach_header* header = machoFile.getHeader();
     
@@ -35,7 +35,7 @@ static void printHeader(MachOFile& machoFile)
     printf("\tOffset: 0x%08llx\n", machoFile.getOffset((void*)&header->magic));
     printf("\tData  : 0x%X\n", header->magic);
     printf("\tValue : ");
-    switch (header->magic) {            
+    switch (header->magic) {
         case MH_CIGAM:
             printf("MH_CIGAM");
             break;
@@ -263,12 +263,77 @@ static void printSegment64(MachOFile& machofile, const segment_64_info_t* info)
     printf("\t\tData  : 0x%X\n", info->cmd->flags);
     printf("\t\tValue : 0x%X\n", info->cmd->flags);
     
+    uint32_t nsect;
+    for (nsect=0; nsect < info->cmd->nsects; nsect++) {
+        const struct section_64* section = info->section_64s[nsect];
+        printf("\n\tSection64 Header (%s)\n", section->sectname);
+        
+        printf("\t\tSection Name\n");
+        printf("\t\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&section->sectname));
+        printf("\t\t\tData  : 0x%X\n", info->cmd->flags);
+        printf("\t\t\tValue : %s\n", section->sectname);
+        
+        printf("\t\tSegment Name\n");
+        printf("\t\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&section->segname));
+        printf("\t\t\tValue : %s\n", section->segname);
+        
+        printf("\t\tAddress\n");
+        printf("\t\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&section->addr));
+        printf("\t\t\tData  : 0x%llX\n", section->addr);
+        printf("\t\t\tValue : %llu\n", section->addr);
+        
+        printf("\t\tSize\n");
+        printf("\t\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&section->size));
+        printf("\t\t\tData  : 0x%llX\n", section->size);
+        printf("\t\t\tValue : %llu\n", section->size);
+        
+        printf("\t\tOffset\n");
+        printf("\t\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&section->offset));
+        printf("\t\t\tData  : 0x%X\n", section->offset);
+        printf("\t\t\tValue : %u\n", section->offset);
+        
+        printf("\t\tAlignment\n");
+        printf("\t\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&section->align));
+        printf("\t\t\tData  : 0x%X\n", section->align);
+        printf("\t\t\tValue : %u\n", section->align);
+        
+        printf("\t\tRelocations Offset\n");
+        printf("\t\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&section->reloff));
+        printf("\t\t\tData  : 0x%X\n", section->reloff);
+        printf("\t\t\tValue : %u\n", section->reloff);
+        
+        printf("\t\tNumber of Relocations\n");
+        printf("\t\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&section->nreloc));
+        printf("\t\t\tData  : 0x%X\n", section->nreloc);
+        printf("\t\t\tValue : %u\n", section->nreloc);
+        
+        printf("\t\tFlags\n");
+        printf("\t\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&section->flags));
+        printf("\t\t\tData  : 0x%X\n", section->flags);
+        printf("\t\t\tValue : %u\n", section->flags);
+        
+        printf("\t\tReserved1\n");
+        printf("\t\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&section->reserved1));
+        printf("\t\t\tData  : 0x%X\n", section->reserved1);
+        printf("\t\t\tValue : %u\n", section->reserved1);
+        
+        printf("\t\tReserved2\n");
+        printf("\t\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&section->reserved2));
+        printf("\t\t\tData  : 0x%X\n", section->reserved2);
+        printf("\t\t\tValue : %u\n", section->reserved2);
+        
+        printf("\t\tReserved3\n");
+        printf("\t\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&section->reserved3));
+        printf("\t\t\tData  : 0x%X\n", section->reserved3);
+        printf("\t\t\tValue : %u\n", section->reserved3);
+    }
+    
     printf("\n");
 }
 
 static void printLoadCommands(MachOFile& machofile)
 {
-    printf("***** Load Commands *****\n");
+    printf("\n***** Load Commands *****\n");
     const load_command_infos_t& load_cmd_infos = machofile.getLoadCommandInfos();
     
     load_command_infos_t::const_iterator iter;
