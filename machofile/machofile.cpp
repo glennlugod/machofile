@@ -40,9 +40,14 @@ namespace rotg {
     
     MachOFile::~MachOFile()
     {
-        segment_64_infos_t::iterator iter;
-        for (iter = m_segment_64_infos.begin(); iter != m_segment_64_infos.end(); iter++) {
-            delete *iter;
+        segment_64_infos_t::iterator s64i_iter;
+        for (s64i_iter = m_segment_64_infos.begin(); s64i_iter != m_segment_64_infos.end(); s64i_iter++) {
+            delete *s64i_iter;
+        }
+        
+        dyld_info_command_infos_t::iterator dici_iter;
+        for (dici_iter = m_dyld_info_command_infos.begin(); dici_iter != m_dyld_info_command_infos.end(); dici_iter++) {
+            delete *dici_iter;
         }
         
         if ((m_data) && (m_data != MAP_FAILED)) {
@@ -426,8 +431,12 @@ namespace rotg {
         return isDone;
     }
     
-    bool MachOFile::parse_binding_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd, BindNodeType nodeType)
+    bool MachOFile::parse_binding_node(macho_input_t *input, dyld_info_command_info_t* dyld_info_cmd_info, BindNodeType nodeType)
     {
+        const struct dyld_info_command* dyld_info_cmd = dyld_info_cmd_info->cmd;
+        dynamic_loader_info_t* dl_info = &dyld_info_cmd_info->dl_info;
+        binding_info_t* binding_info = &dl_info->binding_info;
+        
         const uint8_t* baseAddress = (const uint8_t*)macho_offset(input, input->data, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size);
         if (baseAddress == NULL) {
             return false;
@@ -443,119 +452,49 @@ namespace rotg {
             uint8_t opcode = *ptr & REBASE_OPCODE_MASK;
             uint8_t immediate = *ptr & REBASE_IMMEDIATE_MASK;
             
+            bind_opcode_t bind_op;
+            bind_op.opcode = opcode;
+            bind_op.immediate = immediate;
+            bind_op.ptr = ptr;
+            
             switch (opcode)
             {
-                case BIND_OPCODE_DONE:
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"BIND_OPCODE_DONE"
-//                                           :@""];
-//                    
-//                    // The lazy bindings have one of these at the end of each bind.
+                case BIND_OPCODE_DONE:                    
+                    // The lazy bindings have one of these at the end of each bind.
                     if (nodeType != NodeTypeLazyBind)
                     {
                         isDone = true;
                     }
                     
 //                    doBindLocation = NSMaxRange(range);
-                    
                     break;
                     
                 case BIND_OPCODE_SET_DYLIB_ORDINAL_IMM:
-//                    libOrdinal = immediate;
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"BIND_OPCODE_SET_DYLIB_ORDINAL_IMM"
-//                                           :[NSString stringWithFormat:@"dylib (%d)",libOrdinal]];
                     break;
                     
                 case BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB:
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB"
-//                                           :@""];
-//                    
-//                    libOrdinal = [self read_uleb128:range lastReadHex:&lastReadHex];
-//                    
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"uleb128"
-//                                           :[NSString stringWithFormat:@"dylib (%d)",libOrdinal]];
                     break;
                     
                 case BIND_OPCODE_SET_DYLIB_SPECIAL_IMM:
-                {
-                    // Special means negative
-//                    if (immediate == 0)
-//                    {
-//                        libOrdinal = 0;
-//                    }
-//                    else
-//                    {
-//                        int8_t signExtended = immediate | BIND_OPCODE_MASK; // This sign extends the value
-//                        
-//                        libOrdinal = signExtended;
-//                    }
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"BIND_OPCODE_SET_DYLIB_SPECIAL_IMM"
-//                                           :[NSString stringWithFormat:@"dylib (%d)",libOrdinal]];
-                } break;
-                    
-                case BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM:
-//                    symbolFlags = immediate;
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM"
-//                                           :[NSString stringWithFormat:@"flags (%u)",((uint32_t)-1 & symbolFlags)]];
-//                    
-//                    symbolName = [self read_string:range lastReadHex:&lastReadHex];
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"string"
-//                                           :[NSString stringWithFormat:@"name (%@)",symbolName]];
                     break;
                     
+                case BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM: {
+                    char* symbolName = (char*)++ptr;
+                    ptr += strlen(symbolName);
+                } break;
+                    
                 case BIND_OPCODE_SET_TYPE_IMM:
-//                    type = immediate;
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"BIND_OPCODE_SET_TYPE_IMM"
-//                                           :[NSString stringWithFormat:@"type (%@)",
-//                                             type == BIND_TYPE_POINTER ? @"BIND_TYPE_POINTER" :
-//                                             type == BIND_TYPE_TEXT_ABSOLUTE32 ? @"BIND_TYPE_TEXT_ABSOLUTE32" :
-//                                             type == BIND_TYPE_TEXT_PCREL32 ? @"BIND_TYPE_TEXT_PCREL32" : @"???"]];
                     break;
                     
                 case BIND_OPCODE_SET_ADDEND_SLEB:
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"BIND_OPCODE_SET_ADDEND_SLEB"
-//                                           :@""];
-//                    
-//                    addend = [self read_sleb128:range lastReadHex:&lastReadHex];
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"sleb128"
-//                                           :[NSString stringWithFormat:@"addend (%qi)",addend]];
                     break;
                     
                 case BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
                 {
-//                    uint32_t segmentIndex = immediate;
-//                    
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB"
-//                                           :[NSString stringWithFormat:@"segment (%u)",segmentIndex]];
-//                    
+                    uint32_t segmentIndex = immediate;
+
 //                    uint64_t val = [self read_uleb128:range lastReadHex:&lastReadHex];
-//                    
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"uleb128"
-//                                           :[NSString stringWithFormat:@"offset (%qi)",val]];
-//                    
+                    
 //                    if (([self is64bit] == NO && segmentIndex >= segments.size()) ||
 //                        ([self is64bit] == YES && segmentIndex >= segments_64.size()))
 //                    {
@@ -565,6 +504,17 @@ namespace rotg {
 //                    
 //                    address = ([self is64bit] == NO ? segments.at(segmentIndex)->vmaddr
 //                               : segments_64.at(segmentIndex)->vmaddr) + val;
+                    
+                    if (is64()) {
+                        if (segmentIndex >= m_segment_64_infos.size()) {
+                            return false;
+                        }
+                        
+                        //address = m_segment_64_infos[segmentIndex]->cmd->vmaddr + val;
+                    } else if (is32()) {
+                        // TODO: index vs. check size
+                        // TODO: get address
+                    }
                 } break;
                     
                 case BIND_OPCODE_ADD_ADDR_ULEB:
@@ -721,6 +671,8 @@ namespace rotg {
                     break;
             }
             
+            binding_info->opcodes.push_back(bind_op);
+            
             ptr++;
         }
         
@@ -734,7 +686,17 @@ namespace rotg {
             return false;
         }
         
+        dyld_info_command_info_t* cmd_info = new dyld_info_command_info_t();
+        if (cmd_info == NULL) {
+            return false;
+        }
+        
+        m_dyld_info_command_infos.push_back(cmd_info);
+        load_cmd_info->cmd_info = cmd_info;
+
         const struct dyld_info_command* dyld_info_cmd = (const struct dyld_info_command*)load_cmd_info->cmd;
+        cmd_info->cmd = dyld_info_cmd;
+        cmd_info->cmd_type = cmd_type;
         
         if (dyld_info_cmd->rebase_off * dyld_info_cmd->rebase_size > 0)
         {
@@ -748,7 +710,7 @@ namespace rotg {
         
         if (dyld_info_cmd->bind_off * dyld_info_cmd->bind_size > 0)
         {
-            parse_binding_node(input, dyld_info_cmd, NodeTypeBind);
+            parse_binding_node(input, cmd_info, NodeTypeBind);
         }
         
         if (dyld_info_cmd->weak_bind_off * dyld_info_cmd->weak_bind_size > 0)

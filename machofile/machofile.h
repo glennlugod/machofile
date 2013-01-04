@@ -75,8 +75,9 @@ namespace rotg {
     typedef std::vector<segment_64_info_t*> segment_64_infos_t;
     
     typedef struct bind_opcode {
-        uint8_t opcode;
-        uint8_t immediate;
+        uint8_t         opcode;
+        uint8_t         immediate;
+        const uint8_t*  ptr;
     } bind_opcode_t;
     
     typedef struct binding_info {
@@ -100,8 +101,10 @@ namespace rotg {
     typedef struct dylib_info_command_info {
         uint32_t                        cmd_type;
         const struct dyld_info_command* cmd;
-        dynamic_loader_info_t*          dynamic_loader_info;
+        dynamic_loader_info_t           dl_info;
     } dyld_info_command_info_t;
+    
+    typedef std::vector<dyld_info_command_info_t*> dyld_info_command_infos_t;
     
     ////////////////////////////////////////////////////////////////////////////////
     
@@ -219,7 +222,7 @@ namespace rotg {
         enum BindNodeType {NodeTypeBind, NodeTypeWeakBind, NodeTypeLazyBind};
         
         bool parse_rebase_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd);
-        bool parse_binding_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd, BindNodeType nodeType);
+        bool parse_binding_node(macho_input_t *input, dyld_info_command_info_t* dyld_info_cmd_info, BindNodeType nodeType);
         
         int                             m_fd;
         struct stat                     m_stbuf;
@@ -237,9 +240,12 @@ namespace rotg {
         
         load_command_infos_t            m_load_command_infos;
         segment_64_infos_t              m_segment_64_infos;
+        dyld_info_command_infos_t       m_dyld_info_command_infos;
+        
         dylib_infos_t                   m_dylib_infos;
         runpath_additions_infos_t       m_runpath_additions_infos;
         fat_arch_infos_t                m_fat_arch_infos;
+        
         section_64s_t                   m_section_64s;
         
         SegmentInfoMap                  m_segmentInfo;      // segment info lookup table by offset
