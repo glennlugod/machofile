@@ -80,6 +80,18 @@ namespace rotg {
         const uint8_t*  ptr;
     } bind_opcode_t;
     
+    enum BindNodeType {NodeTypeBind, NodeTypeWeakBind, NodeTypeLazyBind};
+    
+    typedef struct bind_action {
+        uint64_t        address;
+        const char*     symbolName;
+        uint32_t        symbolFlags;
+        int64_t         addend;
+        uint64_t        libOrdinal;
+        BindNodeType    nodeType;
+        uint64_t        location;
+    } bind_action_t;
+    
     typedef struct binding_info {
         std::vector<bind_opcode_t> opcodes;
     } binding_info_t;
@@ -208,6 +220,9 @@ namespace rotg {
     private:
         const void* macho_read(macho_input_t* input, const void *address, size_t length);
         const void* macho_offset(macho_input_t *input, const void *address, size_t offset, size_t length);
+        const void* read_sleb128(const void *address, int64_t& result);
+        const void* read_uleb128(const void *address, uint64_t& result);
+        
         char* macho_format_dylib_version (uint32_t version);
         
         bool parse_universal(macho_input_t *input);
@@ -219,8 +234,6 @@ namespace rotg {
         bool parse_LC_DYLD_INFOS(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
         
         // dylib related parsing
-        enum BindNodeType {NodeTypeBind, NodeTypeWeakBind, NodeTypeLazyBind};
-        
         bool parse_rebase_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd);
         bool parse_binding_node(macho_input_t *input, dyld_info_command_info_t* dyld_info_cmd_info, BindNodeType nodeType);
         

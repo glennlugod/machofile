@@ -77,6 +77,51 @@ namespace rotg {
         return macho_read(input, result, length);
     }
     
+    const void* MachOFile::read_sleb128(const void *address, int64_t& result)
+    {
+        uint8_t *p = ((uint8_t *) address);
+        result = 0;
+        
+        int bit = 0;
+        uint8_t byte;
+        
+        do {
+            byte = *p++;
+            result |= ((byte & 0x7f) << bit);
+            bit += 7;
+        } while (byte & 0x80);
+        
+        // sign extend negative numbers
+        if ( (byte & 0x40) != 0 )
+        {
+            result |= (-1LL) << bit;
+        }
+        
+        return p;
+    }
+    
+    const void* MachOFile::read_uleb128(const void *address, uint64_t& result)
+    {
+        uint8_t *p = ((uint8_t *) address);
+        result = 0;
+        
+        int bit = 0;
+        
+        do {
+            uint64_t slice = *p & 0x7f;
+            
+            if (bit >= 64 || slice << bit >> bit != slice)
+                return NULL;
+            else {
+                result |= (slice << bit);
+                bit += 7;
+            }
+        } 
+        while (*p++ & 0x80);
+
+        return p;
+    }
+    
     /* return a human readable formatted version number. the result must be free()'d. */
     char* MachOFile::macho_format_dylib_version(uint32_t version) {
         char *result = NULL;
@@ -442,10 +487,18 @@ namespace rotg {
             return false;
         }
         
+        uint64_t libOrdinal = 0;
+        int64_t addend = 0;
+        const char* symbolName = NULL;
+        uint32_t symbolFlags = 0;
+        
+        uint64_t doBindLocation = dyld_info_cmd->bind_off;
+        
         const uint8_t* ptr = baseAddress;
         const uint8_t* endAddress = baseAddress + dyld_info_cmd->bind_size;
         
-        const uint8_t* address = baseAddress;
+        uint64_t ptrSize = (is64() ? sizeof(uint64_t) : sizeof(uint32_t));
+        uint64_t address = getOffset((void*)baseAddress);
         bool isDone = false;
         
         while ((ptr < endAddress) && !isDone) {
@@ -457,6 +510,8 @@ namespace rotg {
             bind_op.immediate = immediate;
             bind_op.ptr = ptr;
             
+            ptr++;
+            
             switch (opcode)
             {
                 case BIND_OPCODE_DONE:                    
@@ -466,83 +521,86 @@ namespace rotg {
                         isDone = true;
                     }
                     
-//                    doBindLocation = NSMaxRange(range);
+                    doBindLocation = getOffset((void*)ptr);
                     break;
                     
                 case BIND_OPCODE_SET_DYLIB_ORDINAL_IMM:
+                    libOrdinal = immediate;
                     break;
                     
                 case BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB:
+                    ptr = (const u_int8_t*)read_uleb128(ptr, libOrdinal);
+                    if (ptr == NULL) {
+                        return false;
+                    }
                     break;
                     
                 case BIND_OPCODE_SET_DYLIB_SPECIAL_IMM:
+                    // Special means negative
+                    if (immediate == 0)
+                    {
+                        libOrdinal = 0;
+                    }
+                    else
+                    {
+                        int8_t signExtended = immediate | BIND_OPCODE_MASK; // This sign extends the value
+                        
+                        libOrdinal = signExtended;
+                    }
                     break;
                     
                 case BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM: {
-                    char* symbolName = (char*)++ptr;
-                    ptr += strlen(symbolName);
+                    symbolFlags = immediate;
+                    symbolName = (const char*)ptr;
+                    ptr += strlen(symbolName) + 1;
                 } break;
                     
                 case BIND_OPCODE_SET_TYPE_IMM:
                     break;
                     
                 case BIND_OPCODE_SET_ADDEND_SLEB:
+                    ptr = (const u_int8_t*)read_sleb128(ptr, addend);
+                    if (ptr == NULL) {
+                        return false;
+                    }
                     break;
                     
                 case BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
                 {
                     uint32_t segmentIndex = immediate;
 
-//                    uint64_t val = [self read_uleb128:range lastReadHex:&lastReadHex];
-                    
-//                    if (([self is64bit] == NO && segmentIndex >= segments.size()) ||
-//                        ([self is64bit] == YES && segmentIndex >= segments_64.size()))
-//                    {
-//                        [NSException raise:@"Segment"
-//                                    format:@"index is out of range %u", segmentIndex];
-//                    }
-//                    
-//                    address = ([self is64bit] == NO ? segments.at(segmentIndex)->vmaddr
-//                               : segments_64.at(segmentIndex)->vmaddr) + val;
+                    uint64_t val;
+                    ptr = (const u_int8_t*)read_uleb128(ptr, val);
+                    if (ptr == NULL) {
+                        return false;
+                    }
                     
                     if (is64()) {
                         if (segmentIndex >= m_segment_64_infos.size()) {
                             return false;
                         }
                         
-                        //address = m_segment_64_infos[segmentIndex]->cmd->vmaddr + val;
+                        address = m_segment_64_infos[segmentIndex]->cmd->vmaddr + val;
                     } else if (is32()) {
                         // TODO: index vs. check size
-                        // TODO: get address
+                        
+                        // TODO: address = segments.at(segmentIndex)->vmaddr;
                     }
                 } break;
                     
                 case BIND_OPCODE_ADD_ADDR_ULEB:
                 {
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"BIND_OPCODE_ADD_ADDR_ULEB"
-//                                           :@""];
-//                    
-//                    uint64_t val = [self read_uleb128:range lastReadHex:&lastReadHex];
-//                    
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"uleb128"
-//                                           :[NSString stringWithFormat:@"offset (%qi)",val]];
-//                    
-//                    address += val;
+                    uint64_t val;
+                    ptr = (const u_int8_t*)read_uleb128(ptr, val);
+                    if (ptr == NULL) {
+                        return false;
+                    }
+
+                    address += val;
                 } break;
                     
                 case BIND_OPCODE_DO_BIND:
                 {
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"BIND_OPCODE_DO_BIND"
-//                                           :@""];
-//                    
-//                    [node.details setAttributes:MVUnderlineAttributeName,@"YES",nil];
-//                    
 //                    [self bindAddress:address
 //                                 type:type
 //                           symbolName:symbolName
@@ -554,29 +612,22 @@ namespace rotg {
 //                             location:doBindLocation
 //                           dyldHelper:helper
 //                              ptrSize:ptrSize];
-//                    
-//                    doBindLocation = NSMaxRange(range);
-//                    
-//                    address += ptrSize;
+                    
+                    doBindLocation = getOffset((void*)ptr);
+
+                    address += ptrSize;
                 } break;
                     
                 case BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB:
                 {
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB"
-//                                           :@""];
-//                    
-//                    uint32_t startNextBind = NSMaxRange(range);
-//                    
-//                    uint64_t val = [self read_uleb128:range lastReadHex:&lastReadHex];
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"uleb128"
-//                                           :[NSString stringWithFormat:@"offset (%qi)",val]];
-//                    
-//                    [node.details setAttributes:MVUnderlineAttributeName,@"YES",nil];
-//                    
+                    uint64_t startNextBind = getOffset((void*)ptr);
+                    
+                    uint64_t val;
+                    ptr = (const u_int8_t*)read_uleb128(ptr, val);
+                    if (ptr == NULL) {
+                        return false;
+                    }
+                    
 //                    [self bindAddress:address
 //                                 type:type
 //                           symbolName:symbolName
@@ -588,23 +639,16 @@ namespace rotg {
 //                             location:doBindLocation
 //                           dyldHelper:helper
 //                              ptrSize:ptrSize];
-//                    
-//                    doBindLocation = startNextBind;
-//                    
-//                    address += ptrSize + val;
+                    
+                    doBindLocation = startNextBind;
+                    
+                    address += ptrSize + val;
                 } break;
                     
                 case BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED:
                 {
-//                    uint32_t scale = immediate;
-//                    
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED"
-//                                           :[NSString stringWithFormat:@"scale (%u)",scale]];
-//                    
-//                    [node.details setAttributes:MVUnderlineAttributeName,@"YES",nil];
-//                    
+                    uint32_t scale = immediate;
+                    
 //                    [self bindAddress:address 
 //                                 type:type 
 //                           symbolName:symbolName 
@@ -616,37 +660,30 @@ namespace rotg {
 //                             location:doBindLocation
 //                           dyldHelper:helper
 //                              ptrSize:ptrSize];
-//                    
-//                    doBindLocation = NSMaxRange(range);
-//                    
-//                    address += ptrSize + scale * ptrSize;
+                    
+                    doBindLocation = getOffset((void*)ptr);
+                    
+                    address += ptrSize + scale * ptrSize;
                 } break;
                     
                 case BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB: 
                 {
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB"
-//                                           :@""];
-//                    
-//                    uint32_t startNextBind = NSMaxRange(range);
-//                    
-//                    uint64_t count = [self read_uleb128:range lastReadHex:&lastReadHex];
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"uleb128"
-//                                           :[NSString stringWithFormat:@"count (%qu)",count]];
-//                    
-//                    uint64_t skip = [self read_uleb128:range lastReadHex:&lastReadHex];
-//                    [node.details appendRow:[NSString stringWithFormat:@"%.8lX", range.location]
-//                                           :lastReadHex
-//                                           :@"uleb128"
-//                                           :[NSString stringWithFormat:@"skip (%qu)",skip]];
-//                    
-//                    [node.details setAttributes:MVUnderlineAttributeName,@"YES",nil];
-//                    
-//                    for (uint64_t index = 0; index < count; index++) 
-//                    {
+                    uint64_t startNextBind = getOffset((void*)ptr);
+                    
+                    uint64_t count;
+                    ptr = (const u_int8_t*)read_uleb128(ptr, count);
+                    if (ptr == NULL) {
+                        return false;
+                    }
+
+                    uint64_t skip;
+                    ptr = (const u_int8_t*)read_uleb128(ptr, skip);
+                    if (ptr == NULL) {
+                        return false;
+                    }
+                    
+                    for (uint64_t index = 0; index < count; index++) 
+                    {
 //                        [self bindAddress:address 
 //                                     type:type 
 //                               symbolName:symbolName 
@@ -658,22 +695,18 @@ namespace rotg {
 //                                 location:doBindLocation
 //                               dyldHelper:helper
 //                                  ptrSize:ptrSize];
-//                        
-//                        doBindLocation = startNextBind;
-//                        
-//                        address += ptrSize + skip;
-//                    }
+                        
+                        doBindLocation = startNextBind;
+                        
+                        address += ptrSize + skip;
+                    }
                 } break;
                     
                 default:
-//                    [NSException raise:@"Bind info" format:@"Unknown opcode (%u %u)", 
-//                     ((uint32_t)-1 & opcode), ((uint32_t)-1 & immediate)];
-                    break;
+                    return false;
             }
             
             binding_info->opcodes.push_back(bind_op);
-            
-            ptr++;
         }
         
         return true;
