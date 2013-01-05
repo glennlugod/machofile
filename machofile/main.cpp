@@ -441,8 +441,225 @@ static void printThreadCommand(MachOFile& machofile, const thread_command_info_t
         printf("\tFlavor\n");
         printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->tsh.flavor));
         printf("\t\tData  : 0x%X\n", state->tsh.flavor);
-        //printf("\t\tValue : %d\n", info->cmd->cmdsize);
-        
+        printf("\t\tValue : ");
+        switch (state->tsh.flavor) {
+            case x86_THREAD_STATE32:
+                printf("x86_THREAD_STATE32");
+                break;
+                
+            case x86_FLOAT_STATE32:
+                printf("x86_FLOAT_STATE32");
+                break;
+                
+            case x86_EXCEPTION_STATE32:
+                printf("x86_EXCEPTION_STATE32");
+                break;
+                
+            case x86_THREAD_STATE64:
+                printf("x86_THREAD_STATE64");
+                break;
+                
+            case x86_FLOAT_STATE64:
+                printf("x86_FLOAT_STATE64");
+                break;
+                
+            case x86_EXCEPTION_STATE64:
+                printf("x86_EXCEPTION_STATE64");
+                break;
+                
+            case x86_THREAD_STATE:
+                printf("x86_THREAD_STATE");
+                break;
+                
+            case x86_FLOAT_STATE:
+                printf("x86_FLOAT_STATE");
+                break;
+                
+            case x86_EXCEPTION_STATE:
+                printf("x86_EXCEPTION_STATE");
+                break;
+                
+            case x86_DEBUG_STATE32:
+                printf("x86_DEBUG_STATE32");
+                break;
+                
+            case x86_DEBUG_STATE64:
+                printf("x86_DEBUG_STATE64");
+                break;
+                
+            case x86_DEBUG_STATE:
+                printf("x86_DEBUG_STATE");
+                break;
+                
+            case THREAD_STATE_NONE:
+                printf("THREAD_STATE_NONE");
+                break;
+        }
+        printf("\n");
+
+        printf("\tCount\n");
+        printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->tsh.count));
+        printf("\t\tData  : 0x%X\n", state->tsh.count);
+        printf("\t\tValue : %d\n", state->tsh.count);
+
+        switch (state->tsh.flavor) {
+            case x86_THREAD_STATE32:
+                printf("TODO: Display Info - x86_THREAD_STATE32");
+                break;
+                
+            case x86_FLOAT_STATE32:
+                printf("TODO: Display Info - x86_FLOAT_STATE32");
+                break;
+                
+            case x86_EXCEPTION_STATE32:
+                printf("TODO: Display Info - x86_EXCEPTION_STATE32");
+                break;
+                
+            case x86_THREAD_STATE64:
+                printf("\trax\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__rax));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__rax);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__rax);
+                
+                printf("\trbx\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__rbx));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__rbx);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__rbx);
+                
+                printf("\trcx\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__rcx));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__rcx);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__rcx);
+                
+                printf("\trdx\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__rdx));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__rdx);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__rdx);
+                
+                printf("\trdi\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__rdi));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__rdi);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__rdi);
+                
+                printf("\trsi\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__rsi));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__rsi);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__rsi);
+                
+                printf("\trbp\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__rbp));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__rbp);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__rbp);
+                
+                printf("\trsp\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__rsp));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__rsp);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__rsp);
+                
+                printf("\tr8\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__r8));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__r8);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__r8);
+                
+                printf("\tr9\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__r9));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__r9);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__r9);
+                
+                printf("\tr10\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__r10));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__r10);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__r10);
+                
+                printf("\tr11\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__r11));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__r11);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__r11);
+                
+                printf("\tr12\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__r12));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__r12);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__r12);
+                
+                printf("\tr13\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__r13));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__r13);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__r13);
+                
+                printf("\tr14\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__r14));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__r14);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__r14);
+                
+                printf("\tr15\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__r15));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__r15);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__r15);
+                
+                printf("\trip\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__rip));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__rip);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__rip);
+                
+                printf("\trflags\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__rflags));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__rflags);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__rflags);
+                
+                printf("\tcs\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__cs));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__cs);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__cs);
+                
+                printf("\tfs\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__fs));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__fs);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__fs);
+                
+                printf("\tgs\n");
+                printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->uts.ts64.__gs));
+                printf("\t\tData  : 0x%llX\n", state->uts.ts64.__gs);
+                printf("\t\tValue : %lld\n", state->uts.ts64.__gs);
+                
+                break;
+                
+            case x86_FLOAT_STATE64:
+                printf("TODO: Display Info - x86_FLOAT_STATE64");
+                break;
+                
+            case x86_EXCEPTION_STATE64:
+                printf("TODO: Display Info - x86_EXCEPTION_STATE64");
+                break;
+                
+            case x86_THREAD_STATE:
+                printf("TODO: Display Info - x86_THREAD_STATE");
+                break;
+                
+            case x86_FLOAT_STATE:
+                printf("TODO: Display Info - x86_FLOAT_STATE");
+                break;
+                
+            case x86_EXCEPTION_STATE:
+                printf("TODO: Display Info - x86_EXCEPTION_STATE");
+                break;
+                
+            case x86_DEBUG_STATE32:
+                printf("TODO: Display Info - x86_DEBUG_STATE32");
+                break;
+                
+            case x86_DEBUG_STATE64:
+                printf("TODO: Display Info - x86_DEBUG_STATE64");
+                break;
+                
+            case x86_DEBUG_STATE:
+                printf("TODO: Display Info - x86_DEBUG_STATE");
+                break;
+                
+            case THREAD_STATE_NONE:
+                printf("TODO: Display Info - THREAD_STATE_NONE");
+                break;
+        }
+
     }
     
     printf("\n");
