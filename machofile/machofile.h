@@ -99,24 +99,21 @@ namespace rotg {
         std::vector<bind_action_t> actions;
     } binding_info_t;
     
-    typedef struct lazy_binding_info {
-        std::vector<bind_opcode_t> opcodes;
-    } lazy_binding_info_t;
-    
     typedef struct export_info {
         std::vector<bind_opcode_t> opcodes;
     } export_info_t;
     
     typedef struct dynamic_loader_info {
         binding_info_t      binding_info;
-        lazy_binding_info_t lazy_binding_info;
+        binding_info_t      weak_binding_info;
+        binding_info_t      lazy_binding_info;
         export_info_t       export_info;
     } dynamic_loader_info_t;
     
     typedef struct dylib_info_command_info {
         uint32_t                        cmd_type;
         const struct dyld_info_command* cmd;
-        dynamic_loader_info_t           dl_info;
+        dynamic_loader_info_t           loader_info;
     } dyld_info_command_info_t;
     
     typedef std::vector<dyld_info_command_info_t*> dyld_info_command_infos_t;
@@ -238,7 +235,7 @@ namespace rotg {
         
         // dylib related parsing
         bool parse_rebase_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd);
-        bool parse_binding_node(macho_input_t *input, dyld_info_command_info_t* dyld_info_cmd_info, BindNodeType nodeType);
+        bool parse_binding_node(macho_input_t *input, binding_info_t* binding_info, uint64_t location, uint32_t length, BindNodeType nodeType);
         
         int                             m_fd;
         struct stat                     m_stbuf;

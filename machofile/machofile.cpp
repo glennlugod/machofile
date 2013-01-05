@@ -476,13 +476,9 @@ namespace rotg {
         return isDone;
     }
     
-    bool MachOFile::parse_binding_node(macho_input_t *input, dyld_info_command_info_t* dyld_info_cmd_info, BindNodeType nodeType)
+    bool MachOFile::parse_binding_node(macho_input_t *input, binding_info_t* binding_info, uint64_t location, uint32_t length, BindNodeType nodeType)
     {
-        const struct dyld_info_command* dyld_info_cmd = dyld_info_cmd_info->cmd;
-        dynamic_loader_info_t* dl_info = &dyld_info_cmd_info->dl_info;
-        binding_info_t* binding_info = &dl_info->binding_info;
-        
-        const uint8_t* baseAddress = (const uint8_t*)macho_offset(input, input->data, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size);
+        const uint8_t* baseAddress = (const uint8_t*)macho_offset(input, input->data, location, length);
         if (baseAddress == NULL) {
             return false;
         }
@@ -493,10 +489,10 @@ namespace rotg {
         const char* symbolName = NULL;
         uint32_t symbolFlags = 0;
         
-        uint64_t doBindLocation = dyld_info_cmd->bind_off;
+        uint64_t doBindLocation = location;
         
         const uint8_t* ptr = baseAddress;
-        const uint8_t* endAddress = baseAddress + dyld_info_cmd->bind_size;
+        const uint8_t* endAddress = baseAddress + length;
         
         uint64_t ptrSize = (is64bit() ? sizeof(uint64_t) : sizeof(uint32_t));
         uint64_t address = getOffset((void*)baseAddress);
@@ -749,17 +745,23 @@ namespace rotg {
         
         if (dyld_info_cmd->bind_off * dyld_info_cmd->bind_size > 0)
         {
-            parse_binding_node(input, cmd_info, NodeTypeBind);
+            if (!parse_binding_node(input, &cmd_info->loader_info.binding_info, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size, NodeTypeBind)) {
+                return false;
+            }
         }
         
         if (dyld_info_cmd->weak_bind_off * dyld_info_cmd->weak_bind_size > 0)
         {
-            // TODO: createBindingNode
+            if (!parse_binding_node(input, &cmd_info->loader_info.weak_binding_info, dyld_info_cmd->weak_bind_off, dyld_info_cmd->weak_bind_size, NodeTypeWeakBind)) {
+                return false;
+            }
         }
         
         if (dyld_info_cmd->lazy_bind_off * dyld_info_cmd->lazy_bind_size > 0)
         {
-            // TODO: createBindingNode
+            if (!parse_binding_node(input, &cmd_info->loader_info.lazy_binding_info, dyld_info_cmd->lazy_bind_off, dyld_info_cmd->lazy_bind_size, NodeTypeLazyBind)) {
+                return false;
+            }
         }
         
         if (dyld_info_cmd->export_off * dyld_info_cmd->export_size > 0)
