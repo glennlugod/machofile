@@ -819,11 +819,11 @@ static void printLoadCommands(MachOFile& machofile)
 
 static void printDylibs(MachOFile& machoFile)
 {
-    const dylib_infos_t& dylib_infos = machoFile.getDylibInfos();
+    const dylib_command_infos_t& dylib_infos = machoFile.getDylibCommandInfos();
     
-    dylib_infos_t::const_iterator iter;
+    dylib_command_infos_t::const_iterator iter;
     for (iter=dylib_infos.begin(); iter!=dylib_infos.end(); iter++) {
-        const struct dylib_info& info = *iter;
+        const struct dylib_command_info& info = *iter;
         
         switch (info.cmd_type) {
             case LC_ID_DYLIB:
@@ -843,8 +843,13 @@ static void printDylibs(MachOFile& machoFile)
                 break;
         }
         
+        //char *result = NULL;
+        //asprintf(&result, "%u.%u.%u", (version >> 16) & 0xFF, (version >> 8) & 0xFF, version & 0xFF);
+        
         /* This is a dyld library identifier */
-        printf("install_name=%s (compatibility_version=%s, version=%s)\n", info.name, info.compat_version.c_str(), info.current_version.c_str());
+        //printf("install_name=%s (compatibility_version=%s, version=%s)\n", info.name, info.compat_version.c_str(), info.current_version.c_str());
+        
+        //free(result);
     }
 }
 

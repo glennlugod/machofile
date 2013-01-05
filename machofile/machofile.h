@@ -18,7 +18,6 @@
 
 #include <unistd.h>
 
-#include <string>
 #include <vector>
 #include <map>
 
@@ -32,16 +31,14 @@ namespace rotg {
     
     typedef std::vector<load_command_info_t> load_command_infos_t;
     
-    typedef struct dylib_info {
+    typedef struct dylib_command_info {
         uint32_t                    cmd_type;
         const struct dylib_command* cmd;
         const char*                 name;
         size_t                      namelen;
-        std::string                 current_version;
-        std::string                 compat_version;
-    } dylib_info_t;
+    } dylib_command_info_t;
     
-    typedef std::vector<dylib_info_t> dylib_infos_t;
+    typedef std::vector<dylib_command_info_t> dylib_command_infos_t;
     
     typedef struct runpath_additions_info {
         uint32_t                    cmd_type;
@@ -208,8 +205,8 @@ namespace rotg {
             return m_segment_command_64_infos;
         }
         
-        const dylib_infos_t& getDylibInfos() const {
-            return m_dylib_infos;
+        const dylib_command_infos_t& getDylibCommandInfos() const {
+            return m_dylib_command_infos;
         }
         
         const fat_arch_infos_t& getFatArchInfos() const {
@@ -230,14 +227,12 @@ namespace rotg {
         const void* read_sleb128(const void *address, int64_t& result);
         const void* read_uleb128(const void *address, uint64_t& result);
         
-        char* macho_format_dylib_version (uint32_t version);
-        
         bool parse_universal(macho_input_t *input);
         bool parse_load_commands(macho_input_t *input);
         
         bool parse_LC_SEGMENT_64(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
         bool parse_LC_RPATH(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
-        bool parse_LC_DYLIBS(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
+        bool parse_LC_DYLIB(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
         bool parse_LC_DYLD_INFO(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
         bool parse_LC_THREAD(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
         
@@ -264,7 +259,7 @@ namespace rotg {
         dyld_info_command_infos_t       m_dyld_info_command_infos;
         thread_command_infos_t          m_thread_command_infos;
         
-        dylib_infos_t                   m_dylib_infos;
+        dylib_command_infos_t           m_dylib_command_infos;
         runpath_additions_infos_t       m_runpath_additions_infos;
         fat_arch_infos_t                m_fat_arch_infos;
         

@@ -127,13 +127,6 @@ namespace rotg {
         return p;
     }
     
-    /* return a human readable formatted version number. the result must be free()'d. */
-    char* MachOFile::macho_format_dylib_version(uint32_t version) {
-        char *result = NULL;
-        asprintf(&result, "%u.%u.%u", (version >> 16) & 0xFF, (version >> 8) & 0xFF, version & 0xFF);
-        return result;
-    }
-    
     bool MachOFile::parse_universal(macho_input_t *input)
     {
         uint32_t nfat = OSSwapBigToHostInt32(m_fat_header->nfat_arch);
@@ -227,7 +220,7 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_LC_DYLIBS(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
+    bool MachOFile::parse_LC_DYLIB(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct dylib_command)) {
             warnx("Incorrect name size");
@@ -243,21 +236,21 @@ namespace rotg {
             return false;
         
         /* Print the dylib info */
-        char *current_version = macho_format_dylib_version(read32(dylib_cmd->dylib.current_version));
-        char *compat_version = macho_format_dylib_version(read32(dylib_cmd->dylib.compatibility_version));
+//        char *current_version = macho_format_dylib_version(read32(dylib_cmd->dylib.current_version));
+//        char *compat_version = macho_format_dylib_version(read32(dylib_cmd->dylib.compatibility_version));
         
-        struct dylib_info dl_info;
+        dylib_command_info_t dl_info;
         dl_info.cmd_type = cmd_type;
         dl_info.cmd = dylib_cmd;
         dl_info.name = nameptr;
         dl_info.namelen = namelen;
-        dl_info.current_version = current_version;
-        dl_info.compat_version = compat_version;
+//        dl_info.current_version = current_version;
+//        dl_info.compat_version = compat_version;
         
-        m_dylib_infos.push_back(dl_info);
+        m_dylib_command_infos.push_back(dl_info);
         
-        free(current_version);
-        free(compat_version);
+//        free(current_version);
+//        free(compat_version);
         
         return true;
     }
@@ -968,7 +961,7 @@ namespace rotg {
                 case LC_LOAD_UPWARD_DYLIB:
 #endif
                 {
-                    if (!parse_LC_DYLIBS(input, cmd_type, cmdsize, &load_cmd_info)) {
+                    if (!parse_LC_DYLIB(input, cmd_type, cmdsize, &load_cmd_info)) {
                         return false;
                     }
                 } break;
