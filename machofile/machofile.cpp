@@ -779,14 +779,28 @@ namespace rotg {
     
     bool MachOFile::parse_LC_THREAD(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
+        const struct thread_command* cmd = (const struct thread_command*)load_cmd_info->cmd;
+        
+        thread_command_info_t* cmd_info = new thread_command_info_t();
+        if (cmd_info == NULL) {
+            return false;
+        }
+        
+        cmd_info->cmd_type = cmd_type;
+        cmd_info->cmd = cmd;
+        
+        m_thread_command_infos.push_back(cmd_info);
+        load_cmd_info->cmd_info = cmd_info;
+        
         return true;
     }
     
     bool MachOFile::parse_load_commands(macho_input_t *input)
     {
         const struct load_command* cmd = (const struct load_command*)macho_offset(input, m_header, m_header_size, sizeof(struct load_command));
-        if (cmd == NULL)
+        if (cmd == NULL) {
             return false;
+        }
         
         uint32_t ncmds = read32(m_header->ncmds);
         

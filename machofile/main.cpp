@@ -409,6 +409,45 @@ static void printDyldInfo(MachOFile& machofile, const dyld_info_command_info_t* 
     printf("\n");
 }
 
+static void printThreadCommand(MachOFile& machofile, const thread_command_info_t* info)
+{
+    const char* cmd_name;
+    switch (info->cmd_type) {
+        case LC_THREAD:
+            cmd_name = "LC_THREAD";
+            break;
+            
+        case LC_UNIXTHREAD:
+            cmd_name = "LC_UNIXTHREAD";
+            break;
+    }
+    
+    printf("%s\n", cmd_name);
+    
+    printf("\tCommand\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->cmd));
+    printf("\t\tData  : 0x%X\n", info->cmd->cmd);
+    printf("\t\tValue : %s\n", cmd_name);
+    
+    printf("\tCommand Size\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->cmdsize));
+    printf("\t\tData  : 0x%X\n", info->cmd->cmdsize);
+    printf("\t\tValue : %d\n", info->cmd->cmdsize);
+    
+    const struct mach_header* header = machofile.getHeader();
+    if (header->cputype == CPU_TYPE_X86 || header->cputype == CPU_TYPE_X86_64) {
+        const x86_thread_state* state = (const x86_thread_state*)((uint8_t*)info->cmd + sizeof(struct thread_command));
+        
+        printf("\tFlavor\n");
+        printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&state->tsh.flavor));
+        printf("\t\tData  : 0x%X\n", state->tsh.flavor);
+        //printf("\t\tValue : %d\n", info->cmd->cmdsize);
+        
+    }
+    
+    printf("\n");
+}
+
 static void printLoadCommands(MachOFile& machofile)
 {
     printf("\n***** Load Commands *****\n");
@@ -456,11 +495,8 @@ static void printLoadCommands(MachOFile& machofile)
                 break;
                 
             case LC_THREAD:
-                printf("LC_THREAD (TODO: Details)\n");
-                break;
-                
             case LC_UNIXTHREAD:
-                printf("LC_UNIXTHREAD (TODO: Details)\n");
+                printThreadCommand(machofile, (const thread_command_info_t *)info.cmd_info);
                 break;
                 
             case LC_ID_DYLIB:
