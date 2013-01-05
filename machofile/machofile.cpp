@@ -31,7 +31,7 @@ namespace rotg {
         , m_header64(NULL)
         , m_header_size(0)
         , m_fat_header(NULL)
-        , m_is64(false)
+        , m_is64bit(false)
         , m_is_universal(false)
         , m_archInfo(NULL)
         , m_is_need_byteswap(false)
@@ -488,6 +488,7 @@ namespace rotg {
         }
         
         uint64_t libOrdinal = 0;
+        uint32_t type = 0;
         int64_t addend = 0;
         const char* symbolName = NULL;
         uint32_t symbolFlags = 0;
@@ -497,7 +498,7 @@ namespace rotg {
         const uint8_t* ptr = baseAddress;
         const uint8_t* endAddress = baseAddress + dyld_info_cmd->bind_size;
         
-        uint64_t ptrSize = (is64() ? sizeof(uint64_t) : sizeof(uint32_t));
+        uint64_t ptrSize = (is64bit() ? sizeof(uint64_t) : sizeof(uint32_t));
         uint64_t address = getOffset((void*)baseAddress);
         bool isDone = false;
         
@@ -556,6 +557,7 @@ namespace rotg {
                 } break;
                     
                 case BIND_OPCODE_SET_TYPE_IMM:
+                    type = immediate;
                     break;
                     
                 case BIND_OPCODE_SET_ADDEND_SLEB:
@@ -575,13 +577,13 @@ namespace rotg {
                         return false;
                     }
                     
-                    if (is64()) {
+                    if (is64bit()) {
                         if (segmentIndex >= m_segment_64_infos.size()) {
                             return false;
                         }
                         
                         address = m_segment_64_infos[segmentIndex]->cmd->vmaddr + val;
-                    } else if (is32()) {
+                    } else if (is32bit()) {
                         // TODO: index vs. check size
                         
                         // TODO: address = segments.at(segmentIndex)->vmaddr;
@@ -601,17 +603,18 @@ namespace rotg {
                     
                 case BIND_OPCODE_DO_BIND:
                 {
-//                    [self bindAddress:address
-//                                 type:type
-//                           symbolName:symbolName
-//                                flags:symbolFlags
-//                               addend:addend
-//                       libraryOrdinal:libOrdinal
-//                                 node:actionNode
-//                             nodeType:nodeType
-//                             location:doBindLocation
-//                           dyldHelper:helper
-//                              ptrSize:ptrSize];
+                    bind_action_t bindAction;
+                    bindAction.address = address;
+                    bindAction.type = type;
+                    bindAction.symbolName = symbolName;
+                    bindAction.flags = symbolFlags;
+                    bindAction.addend = addend;
+                    bindAction.libOrdinal = libOrdinal;
+                    bindAction.nodeType = nodeType;
+                    bindAction.location = doBindLocation;
+                    bindAction.ptrSize = ptrSize;
+                    
+                    binding_info->actions.push_back(bindAction);
                     
                     doBindLocation = getOffset((void*)ptr);
 
@@ -628,17 +631,18 @@ namespace rotg {
                         return false;
                     }
                     
-//                    [self bindAddress:address
-//                                 type:type
-//                           symbolName:symbolName
-//                                flags:symbolFlags
-//                               addend:addend
-//                       libraryOrdinal:libOrdinal
-//                                 node:actionNode
-//                             nodeType:nodeType
-//                             location:doBindLocation
-//                           dyldHelper:helper
-//                              ptrSize:ptrSize];
+                    bind_action_t bindAction;
+                    bindAction.address = address;
+                    bindAction.type = type;
+                    bindAction.symbolName = symbolName;
+                    bindAction.flags = symbolFlags;
+                    bindAction.addend = addend;
+                    bindAction.libOrdinal = libOrdinal;
+                    bindAction.nodeType = nodeType;
+                    bindAction.location = doBindLocation;
+                    bindAction.ptrSize = ptrSize;
+                    
+                    binding_info->actions.push_back(bindAction);
                     
                     doBindLocation = startNextBind;
                     
@@ -649,17 +653,18 @@ namespace rotg {
                 {
                     uint32_t scale = immediate;
                     
-//                    [self bindAddress:address 
-//                                 type:type 
-//                           symbolName:symbolName 
-//                                flags:symbolFlags 
-//                               addend:addend 
-//                       libraryOrdinal:libOrdinal 
-//                                 node:actionNode
-//                             nodeType:nodeType
-//                             location:doBindLocation
-//                           dyldHelper:helper
-//                              ptrSize:ptrSize];
+                    bind_action_t bindAction;
+                    bindAction.address = address;
+                    bindAction.type = type;
+                    bindAction.symbolName = symbolName;
+                    bindAction.flags = symbolFlags;
+                    bindAction.addend = addend;
+                    bindAction.libOrdinal = libOrdinal;
+                    bindAction.nodeType = nodeType;
+                    bindAction.location = doBindLocation;
+                    bindAction.ptrSize = ptrSize;
+                    
+                    binding_info->actions.push_back(bindAction);
                     
                     doBindLocation = getOffset((void*)ptr);
                     
@@ -684,17 +689,18 @@ namespace rotg {
                     
                     for (uint64_t index = 0; index < count; index++) 
                     {
-//                        [self bindAddress:address 
-//                                     type:type 
-//                               symbolName:symbolName 
-//                                    flags:symbolFlags 
-//                                   addend:addend 
-//                           libraryOrdinal:libOrdinal 
-//                                     node:actionNode
-//                                 nodeType:nodeType
-//                                 location:doBindLocation
-//                               dyldHelper:helper
-//                                  ptrSize:ptrSize];
+                        bind_action_t bindAction;
+                        bindAction.address = address;
+                        bindAction.type = type;
+                        bindAction.symbolName = symbolName;
+                        bindAction.flags = symbolFlags;
+                        bindAction.addend = addend;
+                        bindAction.libOrdinal = libOrdinal;
+                        bindAction.nodeType = nodeType;
+                        bindAction.location = doBindLocation;
+                        bindAction.ptrSize = ptrSize;
+                        
+                        binding_info->actions.push_back(bindAction);
                         
                         doBindLocation = startNextBind;
                         
@@ -1122,7 +1128,7 @@ namespace rotg {
                 /* The 64-bit header is a direct superset of the 32-bit header */
                 m_header = (struct mach_header *)m_header64;
                 
-                m_is64 = true;
+                m_is64bit = true;
                 break;
                 
             case FAT_CIGAM:

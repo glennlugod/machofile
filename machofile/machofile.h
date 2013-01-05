@@ -84,16 +84,19 @@ namespace rotg {
     
     typedef struct bind_action {
         uint64_t        address;
+        uint32_t        type;
         const char*     symbolName;
-        uint32_t        symbolFlags;
+        uint32_t        flags;
         int64_t         addend;
         uint64_t        libOrdinal;
         BindNodeType    nodeType;
         uint64_t        location;
+        uint64_t        ptrSize;
     } bind_action_t;
     
     typedef struct binding_info {
         std::vector<bind_opcode_t> opcodes;
+        std::vector<bind_action_t> actions;
     } binding_info_t;
     
     typedef struct lazy_binding_info {
@@ -177,12 +180,12 @@ namespace rotg {
             return m_fat_header;
         }
         
-        bool is32() const {
-            return !m_is64 && !m_is_universal;
+        bool is32bit() const {
+            return !m_is64bit && !m_is_universal;
         }
         
-        bool is64() const {
-            return !is32();
+        bool is64bit() const {
+            return !is32bit();
         }
         
         bool isUniversal() const {
@@ -246,7 +249,7 @@ namespace rotg {
         const struct mach_header_64*    m_header64;
         size_t                          m_header_size;
         const struct fat_header*        m_fat_header;
-        bool                            m_is64;
+        bool                            m_is64bit;
         bool                            m_is_universal;
         const NXArchInfo*               m_archInfo;
         bool                            m_is_need_byteswap;

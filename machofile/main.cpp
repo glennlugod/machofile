@@ -14,9 +14,9 @@ using namespace rotg;
 
 static void printHeader(MachOFile& machoFile)
 {
-    if (machoFile.is32()) {
+    if (machoFile.is32bit()) {
         printf("Type: Mach-O 32-bit\n");
-    } else if (machoFile.is64()) {
+    } else if (machoFile.is64bit()) {
         printf("Type: Mach-O 64-bit\n");
     } else if (machoFile.isUniversal()) {
         printf("Type: Universal\n");
@@ -194,7 +194,7 @@ static void printHeader(MachOFile& machoFile)
     printf("\tOffset: 0x%08llx\n", machoFile.getOffset((void*)&header->flags));
     printf("\tData  : 0x%X\n", header->flags);
     
-    if (machoFile.is64()) {
+    if (machoFile.is64bit()) {
         const struct mach_header_64* header64 = machoFile.getHeader64();
         
         printf("Reserved\n");
@@ -331,6 +331,84 @@ static void printSegment64(MachOFile& machofile, const segment_64_info_t* info)
     printf("\n");
 }
 
+static void printDyldInfo(MachOFile& machofile, const dyld_info_command_info_t* info)
+{
+    const char* cmd_name;
+    
+    switch (info->cmd_type) {
+        case LC_DYLD_INFO:
+            cmd_name = "LC_DYLD_INFO";
+            break;
+        case LC_DYLD_INFO_ONLY:
+            cmd_name = "LC_DYLD_INFO_ONLY";
+            break;
+    }
+
+    printf("%s\n", cmd_name);
+
+    printf("\tCommand\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->cmd));
+    printf("\t\tData  : 0x%X\n", info->cmd->cmd);
+    printf("\t\tValue : %s\n", cmd_name);
+    
+    printf("\tCommand Size\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->cmdsize));
+    printf("\t\tData  : 0x%X\n", info->cmd->cmdsize);
+    printf("\t\tValue : %d\n", info->cmd->cmdsize);
+    
+    printf("\tRebase Info Offset\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->rebase_off));
+    printf("\t\tData  : 0x%X\n", info->cmd->rebase_off);
+    printf("\t\tValue : %d\n", info->cmd->rebase_off);
+    
+    printf("\tRebase Info Size\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->rebase_size));
+    printf("\t\tData  : 0x%X\n", info->cmd->rebase_size);
+    printf("\t\tValue : %d\n", info->cmd->rebase_size);
+    
+    printf("\tBinding Info Offset\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->bind_off));
+    printf("\t\tData  : 0x%X\n", info->cmd->bind_off);
+    printf("\t\tValue : %d\n", info->cmd->bind_off);
+    
+    printf("\tBinding Info Size\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->bind_off));
+    printf("\t\tData  : 0x%X\n", info->cmd->bind_off);
+    printf("\t\tValue : %d\n", info->cmd->bind_off);
+    
+    printf("\tWeak Binding Info Offset\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->weak_bind_off));
+    printf("\t\tData  : 0x%X\n", info->cmd->bind_off);
+    printf("\t\tValue : %d\n", info->cmd->bind_off);
+    
+    printf("\tWeak Binding Info Size\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->weak_bind_size));
+    printf("\t\tData  : 0x%X\n", info->cmd->bind_off);
+    printf("\t\tValue : %d\n", info->cmd->bind_off);
+    
+    printf("\tLazy Binding Info Offset\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->lazy_bind_off));
+    printf("\t\tData  : 0x%X\n", info->cmd->bind_off);
+    printf("\t\tValue : %d\n", info->cmd->bind_off);
+    
+    printf("\tLazy Binding Info Size\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->lazy_bind_size));
+    printf("\t\tData  : 0x%X\n", info->cmd->bind_off);
+    printf("\t\tValue : %d\n", info->cmd->bind_off);
+    
+    printf("\Export Info Offset\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->export_off));
+    printf("\t\tData  : 0x%X\n", info->cmd->bind_off);
+    printf("\t\tValue : %d\n", info->cmd->bind_off);
+    
+    printf("\tExport Info Size\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->export_size));
+    printf("\t\tData  : 0x%X\n", info->cmd->bind_off);
+    printf("\t\tValue : %d\n", info->cmd->bind_off);
+    
+    printf("\n");
+}
+
 static void printLoadCommands(MachOFile& machofile)
 {
     printf("\n***** Load Commands *****\n");
@@ -462,7 +540,7 @@ static void printLoadCommands(MachOFile& machofile)
                 break;
                 
             case LC_DYLD_INFO_ONLY:
-                printf("LC_DYLD_INFO_ONLY (TODO: Details)\n");
+                printDyldInfo(machofile, (const dyld_info_command_info_t*)info.cmd_info);
                 break;
                 
 #ifdef __MAC_10_7
