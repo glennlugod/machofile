@@ -205,7 +205,7 @@ static void printHeader(MachOFile& machoFile)
     printf("\n");
 }
 
-static void printSegment64(MachOFile& machofile, const segment_64_info_t* info)
+static void printSegmentCommand64(MachOFile& machofile, const segment_command_64_info_t* info)
 {
     printf("LC_SEGMENT_64 (%s)\n", info->cmd->segname);
     
@@ -424,7 +424,7 @@ static void printLoadCommands(MachOFile& machofile)
                 break;
                 
             case LC_SEGMENT_64:
-                printSegment64(machofile, (const segment_64_info_t*)info.cmd_info);
+                printSegmentCommand64(machofile, (const segment_command_64_info_t*)info.cmd_info);
                 break;
                 
             case LC_SYMTAB:

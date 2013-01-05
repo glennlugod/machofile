@@ -66,13 +66,13 @@ namespace rotg {
     
     typedef std::vector<const struct section_64*> section_64s_t;
     
-    typedef struct segment_64_info {
+    typedef struct segment_command_64_info {
         uint32_t                            cmd_type;
         const struct segment_command_64*    cmd;
         section_64s_t                       section_64s;
-    } segment_64_info_t;
+    } segment_command_64_info_t;
     
-    typedef std::vector<segment_64_info_t*> segment_64_infos_t;
+    typedef std::vector<segment_command_64_info_t*> segment_command_64_infos_t;
     
     typedef struct bind_opcode {
         uint8_t         opcode;
@@ -117,6 +117,13 @@ namespace rotg {
     } dyld_info_command_info_t;
     
     typedef std::vector<dyld_info_command_info_t*> dyld_info_command_infos_t;
+    
+    typedef struct thread_command_info {
+        uint32_t                        cmd_type;
+        const struct thread_command*    cmd;
+    } thread_command_info_t;
+    
+    typedef std::vector<thread_command_info_t*> thread_command_infos_t;
     
     ////////////////////////////////////////////////////////////////////////////////
     
@@ -197,8 +204,8 @@ namespace rotg {
             return m_archInfo;
         }
         
-        const segment_64_infos_t& getSegment64Infos() const {
-            return m_segment_64_infos;
+        const segment_command_64_infos_t& getSegmentCommand64Infos() const {
+            return m_segment_command_64_infos;
         }
         
         const dylib_infos_t& getDylibInfos() const {
@@ -231,7 +238,8 @@ namespace rotg {
         bool parse_LC_SEGMENT_64(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
         bool parse_LC_RPATH(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
         bool parse_LC_DYLIBS(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
-        bool parse_LC_DYLD_INFOS(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
+        bool parse_LC_DYLD_INFO(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
+        bool parse_LC_THREAD(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
         
         // dylib related parsing
         bool parse_rebase_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd);
@@ -252,8 +260,9 @@ namespace rotg {
         bool                            m_is_need_byteswap;
         
         load_command_infos_t            m_load_command_infos;
-        segment_64_infos_t              m_segment_64_infos;
+        segment_command_64_infos_t      m_segment_command_64_infos;
         dyld_info_command_infos_t       m_dyld_info_command_infos;
+        thread_command_infos_t          m_thread_command_infos;
         
         dylib_infos_t                   m_dylib_infos;
         runpath_additions_infos_t       m_runpath_additions_infos;

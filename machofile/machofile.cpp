@@ -40,14 +40,19 @@ namespace rotg {
     
     MachOFile::~MachOFile()
     {
-        segment_64_infos_t::iterator s64i_iter;
-        for (s64i_iter = m_segment_64_infos.begin(); s64i_iter != m_segment_64_infos.end(); s64i_iter++) {
+        segment_command_64_infos_t::iterator s64i_iter;
+        for (s64i_iter = m_segment_command_64_infos.begin(); s64i_iter != m_segment_command_64_infos.end(); s64i_iter++) {
             delete *s64i_iter;
         }
         
         dyld_info_command_infos_t::iterator dici_iter;
         for (dici_iter = m_dyld_info_command_infos.begin(); dici_iter != m_dyld_info_command_infos.end(); dici_iter++) {
             delete *dici_iter;
+        }
+        
+        thread_command_infos_t::iterator tci_iter;
+        for (tci_iter = m_thread_command_infos.begin(); tci_iter != m_thread_command_infos.end(); tci_iter++) {
+            delete *tci_iter;
         }
         
         if ((m_data) && (m_data != MAP_FAILED)) {
@@ -171,7 +176,7 @@ namespace rotg {
         // preserve segment RVA/size for offset lookup
         m_segmentInfo[segment_cmd_64->fileoff] = std::make_pair(segment_cmd_64->vmaddr, segment_cmd_64->vmsize);
         
-        segment_64_info_t* info = new segment_64_info_t();
+        segment_command_64_info_t* info = new segment_command_64_info_t();
         if (info == NULL) {
             return false;
         }
@@ -179,7 +184,7 @@ namespace rotg {
         info->cmd_type = cmd_type;
         info->cmd = segment_cmd_64;
         
-        m_segment_64_infos.push_back(info);
+        m_segment_command_64_infos.push_back(info);
         
         // Section Headers
         for (uint32_t nsect = 0; nsect < segment_cmd_64->nsects; ++nsect)
@@ -574,11 +579,11 @@ namespace rotg {
                     }
                     
                     if (is64bit()) {
-                        if (segmentIndex >= m_segment_64_infos.size()) {
+                        if (segmentIndex >= m_segment_command_64_infos.size()) {
                             return false;
                         }
                         
-                        address = m_segment_64_infos[segmentIndex]->cmd->vmaddr + val;
+                        address = m_segment_command_64_infos[segmentIndex]->cmd->vmaddr + val;
                     } else if (is32bit()) {
                         // TODO: index vs. check size
                         
@@ -714,7 +719,7 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_LC_DYLD_INFOS(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
+    bool MachOFile::parse_LC_DYLD_INFO(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct dyld_info_command)) {
             warnx("Incorrect name size");
@@ -769,6 +774,11 @@ namespace rotg {
             // TODO: createExportNode
         }
 
+        return true;
+    }
+    
+    bool MachOFile::parse_LC_THREAD(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
+    {
         return true;
     }
     
@@ -930,13 +940,9 @@ namespace rotg {
                 case LC_THREAD:
                 case LC_UNIXTHREAD:
                 {
-                    /*
-                    MATCH_STRUCT(thread_command,location)
-                    node = [self createLCThreadNode:parent
-                                            caption:caption
-                                           location:location
-                                     thread_command:thread_command];
-                    */
+                    if (!parse_LC_THREAD(input, cmd_type, cmdsize, &load_cmd_info)) {
+                        return false;
+                    }
                 } break;
                 
                 case LC_ID_DYLIB:
@@ -1055,7 +1061,7 @@ namespace rotg {
                 case LC_DYLD_INFO:
                 case LC_DYLD_INFO_ONLY:
                 {
-                    if (!parse_LC_DYLD_INFOS(input, cmd_type, cmdsize, &load_cmd_info)) {
+                    if (!parse_LC_DYLD_INFO(input, cmd_type, cmdsize, &load_cmd_info)) {
                         return false;
                     }
                 } break;   
