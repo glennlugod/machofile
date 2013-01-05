@@ -396,7 +396,7 @@ static void printDyldInfo(MachOFile& machofile, const dyld_info_command_info_t* 
     printf("\t\tData  : 0x%X\n", info->cmd->bind_off);
     printf("\t\tValue : %d\n", info->cmd->bind_off);
     
-    printf("\Export Info Offset\n");
+    printf("\tExport Info Offset\n");
     printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->export_off));
     printf("\t\tData  : 0x%X\n", info->cmd->bind_off);
     printf("\t\tValue : %d\n", info->cmd->bind_off);
