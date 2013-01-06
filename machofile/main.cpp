@@ -333,7 +333,7 @@ static void printSegmentCommand64(MachOFile& machofile, const segment_command_64
 
 static void printDyldInfo(MachOFile& machofile, const dyld_info_command_info_t* info)
 {
-    const char* cmd_name;
+    const char* cmd_name = "";
     
     switch (info->cmd_type) {
         case LC_DYLD_INFO:
@@ -411,7 +411,7 @@ static void printDyldInfo(MachOFile& machofile, const dyld_info_command_info_t* 
 
 static void printThreadCommand(MachOFile& machofile, const thread_command_info_t* info)
 {
-    const char* cmd_name;
+    const char* cmd_name = "";
     switch (info->cmd_type) {
         case LC_THREAD:
             cmd_name = "LC_THREAD";
@@ -665,6 +665,65 @@ static void printThreadCommand(MachOFile& machofile, const thread_command_info_t
     printf("\n");
 }
 
+static void printLoadDylib(MachOFile& machofile, const dylib_command_info_t* info)
+{
+    const char* cmd_name = "";
+    
+    switch (info->cmd_type) {
+        case LC_ID_DYLIB:
+            cmd_name = "LC_ID_DYLIB";
+            break;
+        case LC_LOAD_WEAK_DYLIB:
+            cmd_name = "LC_LOAD_WEAK_DYLIB";
+            break;
+        case LC_LOAD_DYLIB:
+            cmd_name = "LC_LOAD_DYLIB";
+            break;
+        case LC_REEXPORT_DYLIB:
+            cmd_name = "LC_REEXPORT_DYLIB";
+            break;
+    }
+    
+    printf("%s\n", cmd_name);
+    
+    printf("\tCommand\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->cmd));
+    printf("\t\tData  : 0x%X\n", info->cmd->cmd);
+    printf("\t\tValue : %s\n", cmd_name);
+    
+    printf("\tCommand Size\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->cmdsize));
+    printf("\t\tData  : 0x%X\n", info->cmd->cmdsize);
+    printf("\t\tValue : %d\n", info->cmd->cmdsize);
+    
+    printf("\tStr Offset\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->dylib.name.offset));
+    printf("\t\tData  : 0x%X\n", info->cmd->dylib.name.offset);
+    printf("\t\tValue : %d\n", info->cmd->dylib.name.offset);
+    
+    printf("\tTime Stamp\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->dylib.timestamp));
+    printf("\t\tData  : 0x%X\n", info->cmd->dylib.timestamp);
+    time_t time = (time_t)info->cmd->dylib.timestamp;
+    printf("\t\tValue : %s\n", ctime(&time));
+    
+    printf("\tCurrent Version\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->dylib.current_version));
+    printf("\t\tData  : 0x%X\n", info->cmd->dylib.current_version);
+    printf("\t\tValue : %u.%u.%u\n", (info->cmd->dylib.current_version >> 16), ((info->cmd->dylib.current_version >> 8) & 0xff), (info->cmd->dylib.current_version & 0xff));
+    
+    printf("\tCompatibility Version\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->dylib.compatibility_version));
+    printf("\t\tData  : 0x%X\n", info->cmd->dylib.compatibility_version);
+    printf("\t\tValue : %u.%u.%u\n", (info->cmd->dylib.compatibility_version >> 16), ((info->cmd->dylib.compatibility_version >> 8) & 0xff), (info->cmd->dylib.compatibility_version & 0xff));
+    
+    printf("\tName\n");
+    printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)info->libname));
+    printf("\t\tValue : %s\n", info->libname);
+    
+    printf("\n");
+}
+
 static void printLoadCommands(MachOFile& machofile)
 {
     printf("\n***** Load Commands *****\n");
@@ -717,19 +776,10 @@ static void printLoadCommands(MachOFile& machofile)
                 break;
                 
             case LC_ID_DYLIB:
-                printf("LC_ID_DYLIB (TODO: Details)\n");
-                break;
-                
             case LC_LOAD_DYLIB:
-                printf("LC_LOAD_DYLIB (TODO: Details)\n");
-                break;
-                
             case LC_LOAD_WEAK_DYLIB:
-                printf("LC_LOAD_WEAK_DYLIB (TODO: Details)\n");
-                break;
-
             case LC_REEXPORT_DYLIB:
-                printf("LC_REEXPORT_DYLIB (TODO: Details)\n");
+                printLoadDylib(machofile, (const dylib_command_info_t*)info.cmd_info);
                 break;
                 
             case LC_LAZY_LOAD_DYLIB:
@@ -789,9 +839,6 @@ static void printLoadCommands(MachOFile& machofile)
                 break;
                 
             case LC_DYLD_INFO:
-                printf("LC_DYLD_INFO (TODO: Details)\n");
-                break;
-                
             case LC_DYLD_INFO_ONLY:
                 printDyldInfo(machofile, (const dyld_info_command_info_t*)info.cmd_info);
                 break;
@@ -817,42 +864,6 @@ static void printLoadCommands(MachOFile& machofile)
     printf("\n");
 }
 
-static void printDylibs(MachOFile& machoFile)
-{
-    const dylib_command_infos_t& dylib_infos = machoFile.getDylibCommandInfos();
-    
-    dylib_command_infos_t::const_iterator iter;
-    for (iter=dylib_infos.begin(); iter!=dylib_infos.end(); iter++) {
-        const struct dylib_command_info& info = *iter;
-        
-        switch (info.cmd_type) {
-            case LC_ID_DYLIB:
-                printf("[dylib] ");
-                break;
-            case LC_LOAD_WEAK_DYLIB:
-                printf("[weak] ");
-                break;
-            case LC_LOAD_DYLIB:
-                printf("[load] ");
-                break;
-            case LC_REEXPORT_DYLIB:
-                printf("[reexport] ");
-                break;
-            default:
-                printf("[%d] ", info.cmd_type);
-                break;
-        }
-        
-        //char *result = NULL;
-        //asprintf(&result, "%u.%u.%u", (version >> 16) & 0xFF, (version >> 8) & 0xFF, version & 0xFF);
-        
-        /* This is a dyld library identifier */
-        //printf("install_name=%s (compatibility_version=%s, version=%s)\n", info.name, info.compat_version.c_str(), info.current_version.c_str());
-        
-        //free(result);
-    }
-}
-
 int main(int argc, const char * argv[])
 {
     MachOFile machoFile;
@@ -860,7 +871,6 @@ int main(int argc, const char * argv[])
     if (machoFile.parse_file(argv[1])) {
         printHeader(machoFile);
         printLoadCommands(machoFile);
-        printDylibs(machoFile);
     }
     else
     {

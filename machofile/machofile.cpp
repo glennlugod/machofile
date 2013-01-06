@@ -55,6 +55,11 @@ namespace rotg {
             delete *tci_iter;
         }
         
+        dylib_command_infos_t::iterator dli_iter;
+        for (dli_iter = m_dylib_command_infos.begin(); dli_iter != m_dylib_command_infos.end(); dli_iter++) {
+            delete *dli_iter;
+        }
+        
         if ((m_data) && (m_data != MAP_FAILED)) {
             munmap(m_data, m_stbuf.st_size);
             m_data = NULL;
@@ -232,25 +237,22 @@ namespace rotg {
         /* Extract the install name */
         size_t namelen = cmdsize - sizeof(struct dylib_command);
         const char* nameptr = (const char*)macho_offset(input, load_cmd_info->cmd, sizeof(struct dylib_command), namelen);
-        if (nameptr == NULL)
+        if (nameptr == NULL) {
             return false;
+        }
         
-        /* Print the dylib info */
-//        char *current_version = macho_format_dylib_version(read32(dylib_cmd->dylib.current_version));
-//        char *compat_version = macho_format_dylib_version(read32(dylib_cmd->dylib.compatibility_version));
+        dylib_command_info_t* dl_info = new dylib_command_info_t();
+        if (dl_info == NULL) {
+            return false;
+        }
         
-        dylib_command_info_t dl_info;
-        dl_info.cmd_type = cmd_type;
-        dl_info.cmd = dylib_cmd;
-        dl_info.name = nameptr;
-        dl_info.namelen = namelen;
-//        dl_info.current_version = current_version;
-//        dl_info.compat_version = compat_version;
+        dl_info->cmd_type = cmd_type;
+        dl_info->cmd = dylib_cmd;
+        dl_info->libname = nameptr;
+        dl_info->libnamelen = namelen;
         
         m_dylib_command_infos.push_back(dl_info);
-        
-//        free(current_version);
-//        free(compat_version);
+        load_cmd_info->cmd_info = dl_info;
         
         return true;
     }

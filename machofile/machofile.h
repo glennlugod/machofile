@@ -34,11 +34,11 @@ namespace rotg {
     typedef struct dylib_command_info {
         uint32_t                    cmd_type;
         const struct dylib_command* cmd;
-        const char*                 name;
-        size_t                      namelen;
+        const char*                 libname;
+        size_t                      libnamelen;
     } dylib_command_info_t;
     
-    typedef std::vector<dylib_command_info_t> dylib_command_infos_t;
+    typedef std::vector<dylib_command_info_t*> dylib_command_infos_t;
     
     typedef struct runpath_additions_info {
         uint32_t                    cmd_type;
@@ -258,7 +258,6 @@ namespace rotg {
         segment_command_64_infos_t      m_segment_command_64_infos;
         dyld_info_command_infos_t       m_dyld_info_command_infos;
         thread_command_infos_t          m_thread_command_infos;
-        
         dylib_command_infos_t           m_dylib_command_infos;
         runpath_additions_infos_t       m_runpath_additions_infos;
         fat_arch_infos_t                m_fat_arch_infos;
