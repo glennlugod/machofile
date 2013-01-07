@@ -223,6 +223,9 @@ namespace rotg {
         }
         
     private:
+        MachOFile operator=(MachOFile&);    // declare only, do not allow assign
+        MachOFile(MachOFile&);              // declare only, do not allow copy
+        
         const void* macho_read(macho_input_t* input, const void *address, size_t length);
         const void* macho_offset(macho_input_t *input, const void *address, size_t offset, size_t length);
         const void* read_sleb128(const void *address, int64_t& result);

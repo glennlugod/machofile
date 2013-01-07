@@ -864,6 +864,30 @@ static void printLoadCommands(MachOFile& machofile)
     printf("\n");
 }
 
+static void parseUniversal(MachOFile& machoFile)
+{
+    printf("Universal file\n");
+    
+    const fat_arch_infos_t& infos = machoFile.getFatArchInfos();
+    
+    int archNum = 0;
+    fat_arch_infos_t::const_iterator iter;
+    for (iter=infos.begin(); iter!=infos.end(); iter++) {
+        const struct fat_arch* arch = iter->arch;
+
+        printf("\tArch %d\n", archNum);
+        printf("\t\tCPU Type: 0x%X\n", arch->cputype);
+        printf("\t\tCPU Sub Type: 0x%X\n", arch->cpusubtype);
+        printf("\t\tOffset: 0x%08X\n", arch->offset);
+        printf("\t\tSize: %d\n", arch->size);
+        printf("\t\tAlign: %d\n", arch->align);
+
+        archNum++;
+    }
+    
+    printf("\n");
+}
+
 int main(int argc, const char * argv[])
 {
     MachOFile machoFile;
@@ -872,7 +896,7 @@ int main(int argc, const char * argv[])
         printf("File: %s\n\n", argv[1]);
         
         if (machoFile.isUniversal()) {
-            printf("Universal file (TODO: details)\n"); 
+            parseUniversal(machoFile);
         }
         else
         {
