@@ -869,8 +869,16 @@ int main(int argc, const char * argv[])
     MachOFile machoFile;
     
     if (machoFile.parse_file(argv[1])) {
-        printHeader(machoFile);
-        printLoadCommands(machoFile);
+        printf("File: %s\n\n", argv[1]);
+        
+        if (machoFile.isUniversal()) {
+            printf("Universal file (TODO: details)\n"); 
+        }
+        else
+        {
+            printHeader(machoFile);
+            printLoadCommands(machoFile);
+        }
     }
     else
     {

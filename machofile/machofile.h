@@ -52,6 +52,7 @@ namespace rotg {
     typedef struct macho_input {
         const void* data;
         size_t      length;
+        uint64_t    baseOffset;
     } macho_input_t;
     
     typedef struct fat_arch_info {
@@ -155,7 +156,7 @@ namespace rotg {
         bool parse_macho(macho_input_t *input);
         bool parse_file(const char* path);
         
-        uint64_t getOffset(void* address);
+        uint64_t getOffset(const void* address);
         
         uint32_t read32(uint32_t input) const {
             if (isNeedByteSwap()) {
@@ -241,9 +242,7 @@ namespace rotg {
         bool parse_binding_node(macho_input_t *input, binding_info_t* binding_info, uint64_t location, uint32_t length, BindNodeType nodeType);
         
         int                             m_fd;
-        struct stat                     m_stbuf;
-        void*                           m_data;
-        const void*                     m_baseAddress;
+        macho_input_t                   m_input;
         
         const struct mach_header*       m_header;
         const struct mach_header_64*    m_header64;

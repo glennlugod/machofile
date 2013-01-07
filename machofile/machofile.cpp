@@ -25,8 +25,6 @@ namespace rotg {
     
     MachOFile::MachOFile()
         : m_fd(-1)
-        , m_data(NULL)
-        , m_baseAddress(NULL)
         , m_header(NULL)
         , m_header64(NULL)
         , m_header_size(0)
@@ -36,6 +34,7 @@ namespace rotg {
         , m_archInfo(NULL)
         , m_is_need_byteswap(false)
     {
+        memset(&m_input, 0, sizeof(macho_input_t));
     }
     
     MachOFile::~MachOFile()
@@ -60,9 +59,9 @@ namespace rotg {
             delete *dli_iter;
         }
         
-        if ((m_data) && (m_data != MAP_FAILED)) {
-            munmap(m_data, m_stbuf.st_size);
-            m_data = NULL;
+        if ((m_input.data) && (m_input.data != MAP_FAILED)) {
+            munmap((void*)m_input.data, m_input.length);
+            m_input.data = NULL;
         }
         
         if (m_fd > 0) {
@@ -155,6 +154,7 @@ namespace rotg {
             fat_arch_info.arch = arch;
             fat_arch_info.input.length = length;
             fat_arch_info.input.data = data;
+            fat_arch_info.input.baseOffset = getOffset(data);
             
             m_fat_arch_infos.push_back(fat_arch_info);
         }
@@ -1105,15 +1105,13 @@ namespace rotg {
         return true;
     }
     
-    uint64_t MachOFile::getOffset(void* address)
+    uint64_t MachOFile::getOffset(const void* address)
     {
-        return (uint8_t*)address - (uint8_t*)m_baseAddress;
+        return ((uint8_t*)address - (uint8_t*)m_input.data) + m_input.baseOffset;
     }
     
     /* Parse a Mach-O header */
     bool MachOFile::parse_macho(macho_input_t *input) {
-        m_baseAddress = input->data;
-        
         /* Read the file type. */
         const uint32_t* magic = (const uint32_t*)macho_read(input, input->data, sizeof(uint32_t));
         if (magic == NULL)
@@ -1178,22 +1176,21 @@ namespace rotg {
             return false;
         }
         
-        if (fstat(m_fd, &m_stbuf) != 0) {
+        struct stat stbuf;
+        if (fstat(m_fd, &stbuf) != 0) {
             return false;
         }
         
         /* mmap */
-        m_data = mmap(NULL, m_stbuf.st_size, PROT_READ, MAP_FILE|MAP_PRIVATE, m_fd, 0);
-        if (m_data == MAP_FAILED) {
+        /* Parse */
+        m_input.data = mmap(NULL, stbuf.st_size, PROT_READ, MAP_FILE|MAP_PRIVATE, m_fd, 0);
+        if (m_input.data == MAP_FAILED) {
             return false;
         }
         
-        /* Parse */
-        macho_input_t input_file;
-        input_file.data = m_data;
-        input_file.length = m_stbuf.st_size;
+        m_input.length = stbuf.st_size;
 
-        return parse_macho(&input_file);
+        return parse_macho(&m_input);
     }
 
 }
