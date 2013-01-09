@@ -19,6 +19,8 @@
 
 #include <libkern/OSAtomic.h>
 
+#include <string>
+
 #include "machofile.h"
 
 namespace rotg {
@@ -712,8 +714,45 @@ namespace rotg {
         return true;
     }
     
+    void MachOFile::printSymbols(macho_input_t *input, export_info_t* export_info, const char* prefix, const uint8_t* ptr, uint64_t baseAddress, uint64_t& exportLocation)
+    {
+        uint8_t terminalSize = *ptr;
+        ptr++;
+        
+        if (terminalSize != 0) {
+            // TODO
+        }
+        
+        uint8_t childCount = *ptr;
+        ptr++;
+        
+        while (childCount-- > 0) {
+            exportLocation = getOffset(ptr);
+            
+            const char* label = (const char*)ptr;
+            ptr += strlen(label);
+            
+            uint64_t skip;
+            ptr = (const uint8_t*)read_uleb128(ptr, skip);
+            
+            std::string _prefix = prefix;
+            _prefix += label;
+            
+            printSymbols(input, export_info, _prefix.c_str(), ptr, baseAddress, exportLocation);
+        }
+    }
+    
     bool MachOFile::parse_export_node(macho_input_t *input, export_info_t* export_info, uint64_t location, uint32_t length, uint64_t baseAddress)
     {
+        uint64_t exportLocation = location;
+        
+        const uint8_t* ptr = (const uint8_t*)macho_offset(input, input->data, location, length);
+        if (ptr == NULL) {
+            return false;
+        }
+        
+        printSymbols(input, export_info, "", ptr, baseAddress, exportLocation);
+        
         return true;
     }
 

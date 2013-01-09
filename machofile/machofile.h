@@ -256,6 +256,7 @@ namespace rotg {
         // dylib related parsing
         bool parse_rebase_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd, uint64_t baseAddress);
         bool parse_binding_node(macho_input_t *input, binding_info_t* binding_info, uint64_t location, uint32_t length, BindNodeType nodeType, uint64_t baseAddress);
+        void printSymbols(macho_input_t *input, export_info_t* export_info, const char* prefix, const uint8_t* ptr, uint64_t baseAddress, uint64_t& exportLocation);
         bool parse_export_node(macho_input_t *input, export_info_t* export_info, uint64_t location, uint32_t length, uint64_t baseAddress);
         
         int                             m_fd;
