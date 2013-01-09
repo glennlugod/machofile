@@ -722,7 +722,16 @@ namespace rotg {
         ptr++;
         
         if (terminalSize != 0) {
-            // TODO
+            export_action_t exportAction;
+            
+            ptr = (const uint8_t*)read_uleb128(ptr, exportAction.flags);
+            ptr = (const uint8_t*)read_uleb128(ptr, exportAction.offset);
+            
+            exportAction.symbolName = prefix;
+            
+            exportInfo->actions.push_back(exportAction);
+            
+            ptr += terminalSize;
         }
         
         uint8_t childCount = *ptr;

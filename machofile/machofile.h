@@ -112,6 +112,7 @@ namespace rotg {
     
     typedef struct export_action {
         uint64_t        flags;
+        uint64_t        offset;
         std::string     symbolName;
         const uint8_t*  ptr;
     } export_action_t;
@@ -122,10 +123,10 @@ namespace rotg {
     } export_info_t;
     
     typedef struct dynamic_loader_info {
-        binding_info_t      binding_info;
-        binding_info_t      weak_binding_info;
-        binding_info_t      lazy_binding_info;
-        export_info_t       export_info;
+        binding_info_t  binding_info;
+        binding_info_t  weak_binding_info;
+        binding_info_t  lazy_binding_info;
+        export_info_t   export_info;
     } dynamic_loader_info_t;
     
     typedef struct dylib_info_command_info {
