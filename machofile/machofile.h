@@ -20,6 +20,7 @@
 
 #include <vector>
 #include <map>
+#include <string>
 
 namespace rotg {
     
@@ -104,14 +105,20 @@ namespace rotg {
     
     typedef struct export_opcode {
         uint8_t                     terminalSize;
-        uint64_t                    flags;
         uint8_t                     childCount;
         std::vector<export_node_t>  nodes;
+        const uint8_t*              ptr;
     } export_opcode_t;
+    
+    typedef struct export_action {
+        uint64_t        flags;
+        std::string     symbolName;
+        const uint8_t*  ptr;
+    } export_action_t;
     
     typedef struct export_info {
         std::vector<export_opcode_t>  opcodes;
-        //TODO: actions
+        std::vector<export_action_t>  actions;
     } export_info_t;
     
     typedef struct dynamic_loader_info {
@@ -256,7 +263,7 @@ namespace rotg {
         // dylib related parsing
         bool parse_rebase_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd, uint64_t baseAddress);
         bool parse_binding_node(macho_input_t *input, binding_info_t* binding_info, uint64_t location, uint32_t length, BindNodeType nodeType, uint64_t baseAddress);
-        void printSymbols(macho_input_t *input, export_info_t* export_info, const char* prefix, const uint8_t* ptr, uint64_t baseAddress, uint64_t& exportLocation);
+        void printSymbols(macho_input_t *input, export_info_t* exportInfo, const char* prefix, const uint8_t* ptr, uint64_t baseAddress);
         bool parse_export_node(macho_input_t *input, export_info_t* export_info, uint64_t location, uint32_t length, uint64_t baseAddress);
         
         int                             m_fd;
