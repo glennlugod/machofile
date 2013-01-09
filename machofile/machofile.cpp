@@ -257,17 +257,16 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_rebase_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd)
+    bool MachOFile::parse_rebase_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd, uint64_t baseAddress)
     {
-        const uint8_t* baseAddress = (const uint8_t*)macho_offset(input, input->data, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size);
-        if (baseAddress == NULL) {
+        const uint8_t* ptr = (const uint8_t*)macho_offset(input, input->data, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size);
+        if (ptr == NULL) {
             return false;
         }
+
+        const uint8_t* endAddress = ptr + dyld_info_cmd->bind_size;
         
-        const uint8_t* ptr = baseAddress;
-        const uint8_t* endAddress = baseAddress + dyld_info_cmd->bind_size;
-        
-        //const uint8_t* address = baseAddress;
+        //const uint8_t* address = base_addr;
         bool isDone = false;
         
         while ((ptr < endAddress) && !isDone) {
@@ -476,13 +475,8 @@ namespace rotg {
         return isDone;
     }
     
-    bool MachOFile::parse_binding_node(macho_input_t *input, binding_info_t* binding_info, uint64_t location, uint32_t length, BindNodeType nodeType)
+    bool MachOFile::parse_binding_node(macho_input_t *input, binding_info_t* binding_info, uint64_t location, uint32_t length, BindNodeType nodeType, uint64_t baseAddress)
     {
-        const uint8_t* baseAddress = (const uint8_t*)macho_offset(input, input->data, location, length);
-        if (baseAddress == NULL) {
-            return false;
-        }
-        
         uint64_t libOrdinal = 0;
         uint32_t type = 0;
         int64_t addend = 0;
@@ -491,11 +485,15 @@ namespace rotg {
         
         uint64_t doBindLocation = location;
         
-        const uint8_t* ptr = baseAddress;
-        const uint8_t* endAddress = baseAddress + length;
+        const uint8_t* ptr = (const uint8_t*)macho_offset(input, input->data, location, length);
+        if (ptr == NULL) {
+            return false;
+        }
+        
+        const uint8_t* endAddress = ptr + length;
         
         uint64_t ptrSize = (is64bit() ? sizeof(uint64_t) : sizeof(uint32_t));
-        uint64_t address = getOffset((void*)baseAddress);
+        uint64_t address = baseAddress;
         bool isDone = false;
         
         while ((ptr < endAddress) && !isDone) {
@@ -714,11 +712,45 @@ namespace rotg {
         return true;
     }
     
+    bool MachOFile::parse_export_node(macho_input_t *input, export_info_t* export_info, uint64_t location, uint32_t length, uint64_t baseAddress)
+    {
+        return true;
+    }
+
     bool MachOFile::parse_LC_DYLD_INFO(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct dyld_info_command)) {
             warnx("Incorrect name size");
             return false;
+        }
+        
+        uint64_t base_addr = 0;
+        
+        /* Iterate over the load commands */
+        load_command_infos_t::iterator iter;
+        for (iter = m_load_command_infos.begin(); iter != m_load_command_infos.end(); iter++) {
+            
+            load_command_info_t* load_cmd_info = &(*iter);
+            uint32_t cmd_type = load_cmd_info->cmd_type;
+            
+            switch (cmd_type) {
+                case LC_SEGMENT: {
+                    struct segment_command const * segment_command = (struct segment_command const *)load_cmd_info->cmd;
+                    if (segment_command->fileoff == 0 && segment_command->filesize != 0)
+                    {
+                        base_addr = segment_command->vmaddr;
+                    }
+                } break;
+                    
+                case LC_SEGMENT_64: {
+                    struct segment_command_64 const * segment_command_64 = (struct segment_command_64 const *)load_cmd_info->cmd;
+                    if (segment_command_64->fileoff == 0 && segment_command_64->filesize != 0)
+                    {
+                        base_addr = segment_command_64->vmaddr;
+                    }
+                    
+                } break;
+            }
         }
         
         dyld_info_command_info_t* cmd_info = new dyld_info_command_info_t();
@@ -745,28 +777,30 @@ namespace rotg {
         
         if (dyld_info_cmd->bind_off * dyld_info_cmd->bind_size > 0)
         {
-            if (!parse_binding_node(input, &cmd_info->loader_info.binding_info, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size, NodeTypeBind)) {
+            if (!parse_binding_node(input, &cmd_info->loader_info.binding_info, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size, NodeTypeBind, base_addr)) {
                 return false;
             }
         }
         
         if (dyld_info_cmd->weak_bind_off * dyld_info_cmd->weak_bind_size > 0)
         {
-            if (!parse_binding_node(input, &cmd_info->loader_info.weak_binding_info, dyld_info_cmd->weak_bind_off, dyld_info_cmd->weak_bind_size, NodeTypeWeakBind)) {
+            if (!parse_binding_node(input, &cmd_info->loader_info.weak_binding_info, dyld_info_cmd->weak_bind_off, dyld_info_cmd->weak_bind_size, NodeTypeWeakBind, base_addr)) {
                 return false;
             }
         }
         
         if (dyld_info_cmd->lazy_bind_off * dyld_info_cmd->lazy_bind_size > 0)
         {
-            if (!parse_binding_node(input, &cmd_info->loader_info.lazy_binding_info, dyld_info_cmd->lazy_bind_off, dyld_info_cmd->lazy_bind_size, NodeTypeLazyBind)) {
+            if (!parse_binding_node(input, &cmd_info->loader_info.lazy_binding_info, dyld_info_cmd->lazy_bind_off, dyld_info_cmd->lazy_bind_size, NodeTypeLazyBind, base_addr)) {
                 return false;
             }
         }
         
         if (dyld_info_cmd->export_off * dyld_info_cmd->export_size > 0)
         {
-            // TODO: createExportNode
+            if (!parse_export_node(input, &cmd_info->loader_info.export_info, dyld_info_cmd->export_off, dyld_info_cmd->export_size, base_addr)) {
+                return false;
+            }
         }
 
         return true;
@@ -799,7 +833,7 @@ namespace rotg {
         
         uint32_t ncmds = read32(m_header->ncmds);
         
-        /* Iterate over the load commands */
+        /* Get the load commands */
         for (uint32_t i = 0; i < ncmds; i++) {
             /* Load the full command */
             uint32_t cmdsize = read32(cmd->cmdsize);
@@ -816,47 +850,64 @@ namespace rotg {
             load_cmd_info.cmd = cmd;
             load_cmd_info.cmd_info = NULL;
             
+            m_load_command_infos.push_back(load_cmd_info);
+
+            /* Load the next command */
+            cmd = (const struct load_command*)macho_offset(input, cmd, cmdsize, sizeof(struct load_command));
+            if (cmd == NULL) {
+                return false;
+            }
+        }
+        
+        /* Iterate over the load commands */
+        load_command_infos_t::iterator iter;
+        for (iter = m_load_command_infos.begin(); iter != m_load_command_infos.end(); iter++) {
+            
+            load_command_info_t* load_cmd_info = &(*iter);
+            uint32_t cmd_type = load_cmd_info->cmd_type;
+            uint32_t cmdsize = read32(load_cmd_info->cmd->cmdsize);
+            
             switch (cmd_type) {
                 case LC_SEGMENT:
                 {
                     /*
-                    MATCH_STRUCT(segment_command,location)
-                    node = [self createLCSegmentNode:parent
-                                             caption:[NSString stringWithFormat:@"%@ (%s)",
-                                                      caption, string(segment_command->segname,16).c_str()]
-                                            location:location
-                                     segment_command:segment_command];
-                    
-                    // preserv segment RVA/size for offset lookup
-                    segmentInfo[segment_command->fileoff + imageOffset] = make_pair(segment_command->vmaddr, segment_command->vmsize);
-                    
-                    // preserv load segment command info for latter use
-                    segments.push_back(segment_command);
-                    
-                    // Section Headers
-                    for (uint32_t nsect = 0; nsect < segment_command->nsects; ++nsect)
-                    {
-                        uint32_t sectionloc = location + sizeof(struct segment_command) + nsect * sizeof(struct section);
-                        MATCH_STRUCT(section,sectionloc)
-                        [self createSectionNode:node
-                                        caption:[NSString stringWithFormat:@"Section Header (%s)",
-                                                 string(section->sectname,16).c_str()]
-                                       location:sectionloc
-                                        section:section];
-                        
-                        // preserv section fileOffset/sectName for RVA lookup
-                        NSDictionary * userInfo = [self userInfoForSection:section];
-                        insertChild[section->addr] = make_pair(section->offset + imageOffset, userInfo);
-                        
-                        // preserv header info for latter use
-                        sections.push_back(section);
-                    }
-                    */
+                     MATCH_STRUCT(segment_command,location)
+                     node = [self createLCSegmentNode:parent
+                     caption:[NSString stringWithFormat:@"%@ (%s)",
+                     caption, string(segment_command->segname,16).c_str()]
+                     location:location
+                     segment_command:segment_command];
+                     
+                     // preserv segment RVA/size for offset lookup
+                     segmentInfo[segment_command->fileoff + imageOffset] = make_pair(segment_command->vmaddr, segment_command->vmsize);
+                     
+                     // preserv load segment command info for latter use
+                     segments.push_back(segment_command);
+                     
+                     // Section Headers
+                     for (uint32_t nsect = 0; nsect < segment_command->nsects; ++nsect)
+                     {
+                     uint32_t sectionloc = location + sizeof(struct segment_command) + nsect * sizeof(struct section);
+                     MATCH_STRUCT(section,sectionloc)
+                     [self createSectionNode:node
+                     caption:[NSString stringWithFormat:@"Section Header (%s)",
+                     string(section->sectname,16).c_str()]
+                     location:sectionloc
+                     section:section];
+                     
+                     // preserv section fileOffset/sectName for RVA lookup
+                     NSDictionary * userInfo = [self userInfoForSection:section];
+                     insertChild[section->addr] = make_pair(section->offset + imageOffset, userInfo);
+                     
+                     // preserv header info for latter use
+                     sections.push_back(section);
+                     }
+                     */
                 } break;
                     
                 case LC_SEGMENT_64:
                 {
-                    if (!parse_LC_SEGMENT_64(input, cmd_type, cmdsize, &load_cmd_info)) {
+                    if (!parse_LC_SEGMENT_64(input, cmd_type, cmdsize, load_cmd_info)) {
                         return false;
                     }
                 } break;
@@ -864,96 +915,96 @@ namespace rotg {
                 case LC_SYMTAB:
                 {
                     /*
-                    MATCH_STRUCT(symtab_command,location)
-                    
-                    node = [self createLCSymtabNode:parent
-                                            caption:caption
-                                           location:location
-                                     symtab_command:symtab_command];
-                    
-                    strtab = (char *)((uint8_t *)[dataController.fileData bytes] + imageOffset + symtab_command->stroff);
-                    
-                    for (uint32_t nsym = 0; nsym < symtab_command->nsyms; ++nsym)
-                    {
-                        if ([self is64bit] == NO)
-                        {
-                            MATCH_STRUCT(nlist,imageOffset + symtab_command->symoff + nsym * sizeof(struct nlist))
-                            symbols.push_back (nlist);
-                        }
-                        else // 64bit
-                        {
-                            MATCH_STRUCT(nlist_64,imageOffset + symtab_command->symoff + nsym * sizeof(struct nlist_64))
-                            symbols_64.push_back (nlist_64);
-                        }
-                        
-                    }
-                    */
+                     MATCH_STRUCT(symtab_command,location)
+                     
+                     node = [self createLCSymtabNode:parent
+                     caption:caption
+                     location:location
+                     symtab_command:symtab_command];
+                     
+                     strtab = (char *)((uint8_t *)[dataController.fileData bytes] + imageOffset + symtab_command->stroff);
+                     
+                     for (uint32_t nsym = 0; nsym < symtab_command->nsyms; ++nsym)
+                     {
+                     if ([self is64bit] == NO)
+                     {
+                     MATCH_STRUCT(nlist,imageOffset + symtab_command->symoff + nsym * sizeof(struct nlist))
+                     symbols.push_back (nlist);
+                     }
+                     else // 64bit
+                     {
+                     MATCH_STRUCT(nlist_64,imageOffset + symtab_command->symoff + nsym * sizeof(struct nlist_64))
+                     symbols_64.push_back (nlist_64);
+                     }
+                     
+                     }
+                     */
                 } break;
                     
                 case LC_DYSYMTAB:
                 {
                     /*
-                    MATCH_STRUCT(dysymtab_command,location)
-                    node = [self createLCDysymtabNode:parent
-                                              caption:caption
-                                             location:location
-                                     dysymtab_command:dysymtab_command];
-                    */
+                     MATCH_STRUCT(dysymtab_command,location)
+                     node = [self createLCDysymtabNode:parent
+                     caption:caption
+                     location:location
+                     dysymtab_command:dysymtab_command];
+                     */
                 } break;
                     
                 case LC_TWOLEVEL_HINTS:
                 {
                     /*
-                    MATCH_STRUCT(twolevel_hints_command,location)
-                    node = [self createLCTwolevelHintsNode:parent
-                                                   caption:caption
-                                                  location:location
-                                    twolevel_hints_command:twolevel_hints_command];
-                    */
+                     MATCH_STRUCT(twolevel_hints_command,location)
+                     node = [self createLCTwolevelHintsNode:parent
+                     caption:caption
+                     location:location
+                     twolevel_hints_command:twolevel_hints_command];
+                     */
                 } break;
                     
                 case LC_ID_DYLINKER:
                 case LC_LOAD_DYLINKER:
                 {
                     /*
-                    MATCH_STRUCT(dylinker_command,location)
-                    node = [self createLCDylinkerNode:parent
-                                              caption:caption
-                                             location:location
-                                     dylinker_command:dylinker_command];
-                    */
+                     MATCH_STRUCT(dylinker_command,location)
+                     node = [self createLCDylinkerNode:parent
+                     caption:caption
+                     location:location
+                     dylinker_command:dylinker_command];
+                     */
                 } break;
-                
+                    
                 case LC_PREBIND_CKSUM:
                 {
                     /*
-                    MATCH_STRUCT(prebind_cksum_command,location)
-                    node = [self createLCPrebindChksumNode:parent
-                                                   caption:caption
-                                                  location:location
-                                     prebind_cksum_command:prebind_cksum_command];
-                    */
+                     MATCH_STRUCT(prebind_cksum_command,location)
+                     node = [self createLCPrebindChksumNode:parent
+                     caption:caption
+                     location:location
+                     prebind_cksum_command:prebind_cksum_command];
+                     */
                 } break;
-                
+                    
                 case LC_UUID:
                 {
                     /*
-                    MATCH_STRUCT(uuid_command,location)
-                    node = [self createLCUUIDNode:parent
-                                          caption:caption
-                                         location:location
-                                     uuid_command:uuid_command];
-                    */
+                     MATCH_STRUCT(uuid_command,location)
+                     node = [self createLCUUIDNode:parent
+                     caption:caption
+                     location:location
+                     uuid_command:uuid_command];
+                     */
                 } break;
-                
+                    
                 case LC_THREAD:
                 case LC_UNIXTHREAD:
                 {
-                    if (!parse_LC_THREAD(input, cmd_type, cmdsize, &load_cmd_info)) {
+                    if (!parse_LC_THREAD(input, cmd_type, cmdsize, load_cmd_info)) {
                         return false;
                     }
                 } break;
-                
+                    
                 case LC_ID_DYLIB:
                 case LC_LOAD_DYLIB:
                 case LC_LOAD_WEAK_DYLIB:
@@ -963,11 +1014,11 @@ namespace rotg {
                 case LC_LOAD_UPWARD_DYLIB:
 #endif
                 {
-                    if (!parse_LC_DYLIB(input, cmd_type, cmdsize, &load_cmd_info)) {
+                    if (!parse_LC_DYLIB(input, cmd_type, cmdsize, load_cmd_info)) {
                         return false;
                     }
                 } break;
-                
+                    
                 case LC_CODE_SIGNATURE:
                 case LC_SEGMENT_SPLIT_INFO:
 #ifdef __MAC_10_7
@@ -975,28 +1026,28 @@ namespace rotg {
 #endif
                 {
                     /*
-                    MATCH_STRUCT(linkedit_data_command,location)
-                    node = [self createLCLinkeditDataNode:parent
-                                                  caption:caption
-                                                 location:location
-                                    linkedit_data_command:linkedit_data_command];
-                    */
+                     MATCH_STRUCT(linkedit_data_command,location)
+                     node = [self createLCLinkeditDataNode:parent
+                     caption:caption
+                     location:location
+                     linkedit_data_command:linkedit_data_command];
+                     */
                 } break;
                     
                 case LC_ENCRYPTION_INFO:
                 {
                     /*
-                    MATCH_STRUCT(encryption_info_command, location)
-                    node = [self createLCEncryptionInfoNode:parent
-                                                    caption:caption
-                                                   location:location
-                                    encryption_info_command:encryption_info_command];
-                    */
+                     MATCH_STRUCT(encryption_info_command, location)
+                     node = [self createLCEncryptionInfoNode:parent
+                     caption:caption
+                     location:location
+                     encryption_info_command:encryption_info_command];
+                     */
                 } break;
                     
                 case LC_RPATH:
                 {
-                    if (!parse_LC_RPATH(input, cmd_type, cmdsize, &load_cmd_info)) {
+                    if (!parse_LC_RPATH(input, cmd_type, cmdsize, load_cmd_info)) {
                         return false;
                     }
                 } break;
@@ -1004,101 +1055,93 @@ namespace rotg {
                 case LC_ROUTINES:
                 {
                     /*
-                    MATCH_STRUCT(routines_command,location)
-                    node = [self createLCRoutinesNode:parent 
-                                              caption:caption
-                                             location:location
-                                     routines_command:routines_command];
-                    */
-                } break; 
+                     MATCH_STRUCT(routines_command,location)
+                     node = [self createLCRoutinesNode:parent
+                     caption:caption
+                     location:location
+                     routines_command:routines_command];
+                     */
+                } break;
                     
                 case LC_ROUTINES_64:
                 {
                     /*
-                    MATCH_STRUCT(routines_command_64,location)
-                    node = [self createLCRoutines64Node:parent 
-                                                caption:caption
-                                               location:location
-                                    routines_command_64:routines_command_64];
-                    */
-                } break;   
+                     MATCH_STRUCT(routines_command_64,location)
+                     node = [self createLCRoutines64Node:parent
+                     caption:caption
+                     location:location
+                     routines_command_64:routines_command_64];
+                     */
+                } break;
                     
                 case LC_SUB_FRAMEWORK:
                 {
                     /*
-                    MATCH_STRUCT(sub_framework_command,location)
-                    node = [self createLCSubFrameworkNode:parent 
-                                                  caption:caption
-                                                 location:location
-                                    sub_framework_command:sub_framework_command];
-                    */
-                } break; 
+                     MATCH_STRUCT(sub_framework_command,location)
+                     node = [self createLCSubFrameworkNode:parent
+                     caption:caption
+                     location:location
+                     sub_framework_command:sub_framework_command];
+                     */
+                } break;
                     
                 case LC_SUB_UMBRELLA:
                 {
                     /*
-                    MATCH_STRUCT(sub_umbrella_command,location)
-                    node = [self createLCSubUmbrellaNode:parent 
-                                                 caption:caption
-                                                location:location
-                                    sub_umbrella_command:sub_umbrella_command];
-                    */
-                } break; 
+                     MATCH_STRUCT(sub_umbrella_command,location)
+                     node = [self createLCSubUmbrellaNode:parent
+                     caption:caption
+                     location:location
+                     sub_umbrella_command:sub_umbrella_command];
+                     */
+                } break;
                     
                 case LC_SUB_CLIENT:
                 {
                     /*
-                    MATCH_STRUCT(sub_client_command,location)
-                    node = [self createLCSubClientNode:parent 
-                                               caption:caption
-                                              location:location
-                                    sub_client_command:sub_client_command];
+                     MATCH_STRUCT(sub_client_command,location)
+                     node = [self createLCSubClientNode:parent
+                     caption:caption
+                     location:location
+                     sub_client_command:sub_client_command];
                      */
-                } break; 
+                } break;
                     
                 case LC_SUB_LIBRARY:
                 {
                     /*
-                    MATCH_STRUCT(sub_library_command,location)
-                    node = [self createLCSubLibraryNode:parent 
-                                                caption:caption
-                                               location:location
-                                    sub_library_command:sub_library_command];
-                    */
-                } break; 
-                
+                     MATCH_STRUCT(sub_library_command,location)
+                     node = [self createLCSubLibraryNode:parent
+                     caption:caption
+                     location:location
+                     sub_library_command:sub_library_command];
+                     */
+                } break;
+                    
                 case LC_DYLD_INFO:
                 case LC_DYLD_INFO_ONLY:
                 {
-                    if (!parse_LC_DYLD_INFO(input, cmd_type, cmdsize, &load_cmd_info)) {
+                    if (!parse_LC_DYLD_INFO(input, cmd_type, cmdsize, load_cmd_info)) {
                         return false;
                     }
-                } break;   
-                
+                } break;
+                    
 #ifdef __MAC_10_7
                 case LC_VERSION_MIN_MACOSX:
                 case LC_VERSION_MIN_IPHONEOS:
                 {
                     /*
-                    MATCH_STRUCT(version_min_command,location)
-                    node = [self createLCVersionMinNode:parent 
-                                                caption:caption
-                                               location:location
-                                    version_min_command:version_min_command];
-                    */
+                     MATCH_STRUCT(version_min_command,location)
+                     node = [self createLCVersionMinNode:parent
+                     caption:caption
+                     location:location
+                     version_min_command:version_min_command];
+                     */
                 } break;
 #endif
-                
+                    
                 default:
                     break;
-            }
-            
-            m_load_command_infos.push_back(load_cmd_info);
-
-            /* Load the next command */
-            cmd = (const struct load_command*)macho_offset(input, cmd, cmdsize, sizeof(struct load_command));
-            if (cmd == NULL) {
-                return false;
             }
         }
         

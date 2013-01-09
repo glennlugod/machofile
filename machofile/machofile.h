@@ -97,8 +97,21 @@ namespace rotg {
         std::vector<bind_action_t> actions;
     } binding_info_t;
     
+    typedef struct export_node {
+        const char* label;
+        uint64_t    nextNode;
+    } export_node_t;
+    
+    typedef struct export_opcode {
+        uint8_t                     terminalSize;
+        uint64_t                    flags;
+        uint8_t                     childCount;
+        std::vector<export_node_t>  nodes;
+    } export_opcode_t;
+    
     typedef struct export_info {
-        std::vector<bind_opcode_t> opcodes;
+        std::vector<export_opcode_t>  opcodes;
+        //TODO: actions
     } export_info_t;
     
     typedef struct dynamic_loader_info {
@@ -241,8 +254,9 @@ namespace rotg {
         bool parse_LC_THREAD(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
         
         // dylib related parsing
-        bool parse_rebase_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd);
-        bool parse_binding_node(macho_input_t *input, binding_info_t* binding_info, uint64_t location, uint32_t length, BindNodeType nodeType);
+        bool parse_rebase_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd, uint64_t baseAddress);
+        bool parse_binding_node(macho_input_t *input, binding_info_t* binding_info, uint64_t location, uint32_t length, BindNodeType nodeType, uint64_t baseAddress);
+        bool parse_export_node(macho_input_t *input, export_info_t* export_info, uint64_t location, uint32_t length, uint64_t baseAddress);
         
         int                             m_fd;
         macho_input_t                   m_input;
