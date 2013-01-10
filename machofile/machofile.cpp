@@ -72,7 +72,7 @@ namespace rotg {
     }
     
     /* Verify that the given range is within bounds. */
-    const void* MachOFile::macho_read(macho_input_t* input, const void *address, size_t length) {
+    const void* MachOFile::macho_read(const macho_input_t* input, const void *address, size_t length) {
         if ((((uint8_t *) address) - ((uint8_t *) input->data)) + length > input->length) {
             warnx("Short read parsing Mach-O input");
             return NULL;
@@ -82,7 +82,7 @@ namespace rotg {
     }
     
     /* Verify that address + offset + length is within bounds. */
-    const void* MachOFile::macho_offset(macho_input_t *input, const void *address, size_t offset, size_t length) {
+    const void* MachOFile::macho_offset(const macho_input_t *input, const void *address, size_t offset, size_t length) {
         void *result = ((uint8_t *) address) + offset;
         return macho_read(input, result, length);
     }
@@ -132,7 +132,7 @@ namespace rotg {
         return p;
     }
     
-    bool MachOFile::parse_universal(macho_input_t *input)
+    bool MachOFile::parse_universal(const macho_input_t *input)
     {
         uint32_t nfat = OSSwapBigToHostInt32(m_fat_header->nfat_arch);
         const struct fat_arch* archs = (const struct fat_arch*)macho_offset(input, m_fat_header, sizeof(struct fat_header), sizeof(struct fat_arch));
@@ -166,7 +166,7 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_LC_SEGMENT_64(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
+    bool MachOFile::parse_LC_SEGMENT_64(const macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct segment_command_64)) {
             warnx("Incorrect cmd size");
@@ -205,7 +205,7 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_LC_RPATH(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
+    bool MachOFile::parse_LC_RPATH(const macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct rpath_command)) {
             warnx("Incorrect cmd size");
@@ -229,7 +229,7 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_LC_DYLIB(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
+    bool MachOFile::parse_LC_DYLIB(const macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct dylib_command)) {
             warnx("Incorrect name size");
@@ -261,7 +261,7 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_rebase_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd, uint64_t baseAddress)
+    bool MachOFile::parse_rebase_node(const macho_input_t *input, const struct dyld_info_command* dyld_info_cmd, uint64_t baseAddress)
     {
         const uint8_t* ptr = (const uint8_t*)macho_offset(input, input->data, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size);
         if (ptr == NULL) {
@@ -479,7 +479,7 @@ namespace rotg {
         return isDone;
     }
     
-    bool MachOFile::parse_binding_node(macho_input_t *input, binding_info_t* binding_info, uint64_t location, uint32_t length, BindNodeType nodeType, uint64_t baseAddress)
+    bool MachOFile::parse_binding_node(const macho_input_t *input, binding_info_t* binding_info, uint64_t location, uint32_t length, BindNodeType nodeType, uint64_t baseAddress)
     {
         uint64_t libOrdinal = 0;
         uint32_t type = 0;
@@ -716,7 +716,7 @@ namespace rotg {
         return true;
     }
     
-    void MachOFile::printSymbols(macho_input_t *input, export_info_t* exportInfo, const char* prefix, const uint8_t* ptr, uint64_t baseAddress)
+    void MachOFile::printSymbols(const macho_input_t *input, export_info_t* exportInfo, const char* prefix, const uint8_t* ptr, uint64_t baseAddress)
     {
         export_opcode_t exportOpcode;
         exportOpcode.ptr = ptr;
@@ -762,7 +762,7 @@ namespace rotg {
         exportInfo->opcodes.push_back(exportOpcode);
     }
     
-    bool MachOFile::parse_export_node(macho_input_t *input, export_info_t* export_info, uint64_t location, uint32_t length, uint64_t baseAddress)
+    bool MachOFile::parse_export_node(const macho_input_t *input, export_info_t* export_info, uint64_t location, uint32_t length, uint64_t baseAddress)
     {
         const uint8_t* ptr = (const uint8_t*)macho_offset(input, input->data, location, length);
         if (ptr == NULL) {
@@ -774,7 +774,7 @@ namespace rotg {
         return true;
     }
 
-    bool MachOFile::parse_LC_DYLD_INFO(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
+    bool MachOFile::parse_LC_DYLD_INFO(const macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct dyld_info_command)) {
             warnx("Incorrect name size");
@@ -863,7 +863,7 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_LC_THREAD(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
+    bool MachOFile::parse_LC_THREAD(const macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         const struct thread_command* cmd = (const struct thread_command*)load_cmd_info->cmd;
         
@@ -881,7 +881,7 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_load_commands(macho_input_t *input)
+    bool MachOFile::parse_load_commands(const macho_input_t *input)
     {
         const struct load_command* cmd = (const struct load_command*)macho_offset(input, m_header, m_header_size, sizeof(struct load_command));
         if (cmd == NULL) {
@@ -1211,7 +1211,7 @@ namespace rotg {
     }
     
     /* Parse a Mach-O header */
-    bool MachOFile::parse_macho(macho_input_t *input) {
+    bool MachOFile::parse_macho(const macho_input_t *input) {
         /* Read the file type. */
         const uint32_t* magic = (const uint32_t*)macho_read(input, input->data, sizeof(uint32_t));
         if (magic == NULL) {

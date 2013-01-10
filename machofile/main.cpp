@@ -872,7 +872,7 @@ static void printLoadCommands(MachOFile& machofile)
 
 static void parseUniversal(MachOFile& machoFile)
 {
-    printf("Universal file\n");
+    printf("Type: Universal file\n");
     
     const fat_arch_infos_t& infos = machoFile.getFatArchInfos();
     
@@ -892,6 +892,30 @@ static void parseUniversal(MachOFile& machoFile)
     }
     
     printf("\n");
+    
+    archNum = 1;
+    for (iter=infos.begin(); iter!=infos.end(); iter++) {
+        printf("********** Arch %d **********\n", archNum++);
+        
+        const fat_arch_info_t& fat_arch_info = *iter;
+        
+        MachOFile machoFile;
+        
+        if (machoFile.parse_macho(&(fat_arch_info.input))) {
+            if (machoFile.isUniversal()) {
+                parseUniversal(machoFile);
+            }
+            else if (machoFile.is64bit())
+            {
+                printHeader(machoFile);
+                printLoadCommands(machoFile);
+            }
+            else if (machoFile.is32bit())
+            {
+                printf("TODO: support 32-bit mach-o format\n\n");
+            }
+        }
+    }
 }
 
 int main(int argc, const char * argv[])
@@ -899,15 +923,19 @@ int main(int argc, const char * argv[])
     MachOFile machoFile;
     
     if (machoFile.parse_file(argv[1])) {
-        printf("File: %s\n\n", argv[1]);
+        printf("File: %s\n", argv[1]);
         
         if (machoFile.isUniversal()) {
             parseUniversal(machoFile);
         }
-        else
+        else if (machoFile.is64bit())
         {
             printHeader(machoFile);
             printLoadCommands(machoFile);
+        }
+        else if (machoFile.is32bit())
+        {
+            printf("TODO: support 32-bit mach-o format\n");
         }
     }
     else

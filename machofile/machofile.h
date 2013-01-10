@@ -175,7 +175,7 @@ namespace rotg {
         MachOFile();
         ~MachOFile();
         
-        bool parse_macho(macho_input_t *input);
+        bool parse_macho(const macho_input_t *input);
         bool parse_file(const char* path);
         
         uint64_t getOffset(const void* address);
@@ -248,25 +248,25 @@ namespace rotg {
         MachOFile operator=(MachOFile&);    // declare only, do not allow assign
         MachOFile(MachOFile&);              // declare only, do not allow copy
         
-        const void* macho_read(macho_input_t* input, const void *address, size_t length);
-        const void* macho_offset(macho_input_t *input, const void *address, size_t offset, size_t length);
+        const void* macho_read(const macho_input_t* input, const void *address, size_t length);
+        const void* macho_offset(const macho_input_t *input, const void *address, size_t offset, size_t length);
         const void* read_sleb128(const void *address, int64_t& result);
         const void* read_uleb128(const void *address, uint64_t& result);
         
-        bool parse_universal(macho_input_t *input);
-        bool parse_load_commands(macho_input_t *input);
+        bool parse_universal(const macho_input_t *input);
+        bool parse_load_commands(const macho_input_t *input);
         
-        bool parse_LC_SEGMENT_64(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
-        bool parse_LC_RPATH(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
-        bool parse_LC_DYLIB(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
-        bool parse_LC_DYLD_INFO(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
-        bool parse_LC_THREAD(macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
+        bool parse_LC_SEGMENT_64(const macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
+        bool parse_LC_RPATH(const macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
+        bool parse_LC_DYLIB(const macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
+        bool parse_LC_DYLD_INFO(const macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
+        bool parse_LC_THREAD(const macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
         
         // dylib related parsing
-        bool parse_rebase_node(macho_input_t *input, const struct dyld_info_command* dyld_info_cmd, uint64_t baseAddress);
-        bool parse_binding_node(macho_input_t *input, binding_info_t* binding_info, uint64_t location, uint32_t length, BindNodeType nodeType, uint64_t baseAddress);
-        void printSymbols(macho_input_t *input, export_info_t* exportInfo, const char* prefix, const uint8_t* ptr, uint64_t baseAddress);
-        bool parse_export_node(macho_input_t *input, export_info_t* export_info, uint64_t location, uint32_t length, uint64_t baseAddress);
+        bool parse_rebase_node(const macho_input_t *input, const struct dyld_info_command* dyld_info_cmd, uint64_t baseAddress);
+        bool parse_binding_node(const macho_input_t *input, binding_info_t* binding_info, uint64_t location, uint32_t length, BindNodeType nodeType, uint64_t baseAddress);
+        void printSymbols(const macho_input_t *input, export_info_t* exportInfo, const char* prefix, const uint8_t* ptr, uint64_t baseAddress);
+        bool parse_export_node(const macho_input_t *input, export_info_t* export_info, uint64_t location, uint32_t length, uint64_t baseAddress);
         
         int                             m_fd;
         macho_input_t                   m_input;
