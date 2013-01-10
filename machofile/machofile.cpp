@@ -717,8 +717,13 @@ namespace rotg {
         return true;
     }
     
-    void MachOFile::printSymbols(export_info_t* exportInfo, const char* prefix, const uint8_t* ptr, uint64_t baseAddress)
+    bool MachOFile::printSymbols(export_info_t* exportInfo, const char* prefix, uint64_t location, uint64_t skipBytes, uint64_t baseAddress)
     {
+        const uint8_t* ptr = (const uint8_t*)macho_offset(m_input.data, location + skipBytes, 0);
+        if (ptr == NULL) {
+            return false;
+        }
+        
         export_opcode_t exportOpcode;
         exportOpcode.ptr = ptr;
         
@@ -730,7 +735,14 @@ namespace rotg {
             export_action_t exportAction;
             
             ptr = (const uint8_t*)read_uleb128(ptr, exportAction.flags);
+            if (ptr == NULL) {
+                return false;
+            }
+            
             ptr = (const uint8_t*)read_uleb128(ptr, exportAction.offset);
+            if (ptr == NULL) {
+                return false;
+            }
             
             exportAction.symbolName = prefix;
             
@@ -747,32 +759,31 @@ namespace rotg {
             export_node_t exportNode;
             
             exportNode.label = (const char*)ptr;
-            ptr += strlen(exportNode.label);
+            ptr += strlen(exportNode.label) + 1;
             
-            ptr = (const uint8_t*)read_uleb128(ptr, exportNode.nextNode);
-            ptr += exportNode.nextNode;
+            ptr = (const uint8_t*)read_uleb128(ptr, exportNode.skip);
+            if (ptr == NULL) {
+                return false;
+            }
             
             std::string _prefix = prefix;
             _prefix += exportNode.label;
             
             exportOpcode.nodes.push_back(exportNode);
             
-            printSymbols(exportInfo, _prefix.c_str(), ptr, baseAddress);
+            if (!printSymbols(exportInfo, _prefix.c_str(), location, exportNode.skip, baseAddress)) {
+                return false;
+            }
         }
         
         exportInfo->opcodes.push_back(exportOpcode);
+        
+        return true;
     }
     
     bool MachOFile::parse_export_node(export_info_t* export_info, uint64_t location, uint32_t length, uint64_t baseAddress)
     {
-        const uint8_t* ptr = (const uint8_t*)macho_offset(m_input.data, location, length);
-        if (ptr == NULL) {
-            return false;
-        }
-        
-        printSymbols(export_info, "", ptr, baseAddress);
-        
-        return true;
+        return printSymbols(export_info, "", location, 0, baseAddress);
     }
 
     bool MachOFile::parse_LC_DYLD_INFO(uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
@@ -856,9 +867,9 @@ namespace rotg {
         
         if (dyld_info_cmd->export_off * dyld_info_cmd->export_size > 0)
         {
-//            if (!parse_export_node(&cmd_info->loader_info.export_info, dyld_info_cmd->export_off, dyld_info_cmd->export_size, base_addr)) {
-//                return false;
-//            }
+            if (!parse_export_node(&cmd_info->loader_info.export_info, dyld_info_cmd->export_off, dyld_info_cmd->export_size, base_addr)) {
+                return false;
+            }
         }
 
         return true;

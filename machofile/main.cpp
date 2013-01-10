@@ -711,7 +711,7 @@ static void printLoadDylib(MachOFile& machofile, const dylib_command_info_t* inf
     printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->dylib.timestamp));
     printf("\t\tData  : 0x%X\n", info->cmd->dylib.timestamp);
     time_t time = (time_t)info->cmd->dylib.timestamp;
-    printf("\t\tValue : %s\n", ctime(&time));
+    printf("\t\tValue : %s", ctime(&time));
     
     printf("\tCurrent Version\n");
     printf("\t\tOffset: 0x%08llx\n", machofile.getOffset((void*)&info->cmd->dylib.current_version));
