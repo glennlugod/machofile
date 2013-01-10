@@ -26,6 +26,7 @@ namespace rotg {
     
     MachOFile::MachOFile()
         : m_fd(-1)
+        , m_isInputOwned(false)
         , m_header(NULL)
         , m_header64(NULL)
         , m_header_size(0)
@@ -60,7 +61,7 @@ namespace rotg {
             delete *dli_iter;
         }
         
-        if ((m_input.data) && (m_input.data != MAP_FAILED)) {
+        if (m_isInputOwned && (m_input.data) && (m_input.data != MAP_FAILED)) {
             munmap((void*)m_input.data, m_input.length);
             m_input.data = NULL;
         }
@@ -1212,6 +1213,12 @@ namespace rotg {
     
     /* Parse a Mach-O header */
     bool MachOFile::parse_macho(const macho_input_t *input) {
+        if (m_input.data == NULL) {
+            m_input.data = input->data;
+            m_input.length = input->length;
+            m_input.baseOffset = input->baseOffset;
+        }
+        
         /* Read the file type. */
         const uint32_t* magic = (const uint32_t*)macho_read(input, input->data, sizeof(uint32_t));
         if (magic == NULL) {
@@ -1289,6 +1296,7 @@ namespace rotg {
         }
         
         m_input.length = stbuf.st_size;
+        m_isInputOwned = true;
 
         /* Parse */
         return parse_macho(&m_input);

@@ -269,6 +269,7 @@ namespace rotg {
         bool parse_export_node(const macho_input_t *input, export_info_t* export_info, uint64_t location, uint32_t length, uint64_t baseAddress);
         
         int                             m_fd;
+        bool                            m_isInputOwned;
         macho_input_t                   m_input;
         
         const struct mach_header*       m_header;

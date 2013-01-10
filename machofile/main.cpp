@@ -741,7 +741,7 @@ static void printLoadCommands(MachOFile& machofile)
         
         switch (info.cmd_type) {
             case LC_SEGMENT:
-                printf("LC_SEGMENT (TODO: Details)\n");
+                printf("LC_SEGMENT (TODO: Details)\n\n");
                 break;
                 
             case LC_SEGMENT_64:
@@ -749,31 +749,31 @@ static void printLoadCommands(MachOFile& machofile)
                 break;
                 
             case LC_SYMTAB:
-                printf("LC_SYMTAB (TODO: Details)\n");
+                printf("LC_SYMTAB (TODO: Details)\n\n");
                 break;
                 
             case LC_DYSYMTAB:
-                printf("LC_DYSYMTAB (TODO: Details)\n");
+                printf("LC_DYSYMTAB (TODO: Details)\n\n");
                 break;
                 
             case LC_TWOLEVEL_HINTS:
-                printf("LC_TWOLEVEL_HINTS (TODO: Details)\n");
+                printf("LC_TWOLEVEL_HINTS (TODO: Details)\n\n");
                 break;
                 
             case LC_ID_DYLINKER:
-                printf("LC_ID_DYLINKER (TODO: Details)\n");
+                printf("LC_ID_DYLINKER (TODO: Details)\n\n");
                 break;
                 
             case LC_LOAD_DYLINKER:
-                printf("LC_LOAD_DYLINKER (TODO: Details)\n");
+                printf("LC_LOAD_DYLINKER (TODO: Details)\n\n");
                 break;
                 
             case LC_PREBIND_CKSUM:
-                printf("LC_PREBIND_CKSUM (TODO: Details)\n");
+                printf("LC_PREBIND_CKSUM (TODO: Details)\n\n");
                 break;
                 
             case LC_UUID:
-                printf("LC_UUID (TODO: Details)\n");
+                printf("LC_UUID (TODO: Details)\n\n");
                 break;
                 
             case LC_THREAD:
@@ -789,59 +789,59 @@ static void printLoadCommands(MachOFile& machofile)
                 break;
                 
             case LC_LAZY_LOAD_DYLIB:
-                printf("LC_LAZY_LOAD_DYLIB (TODO: Details)\n");
+                printf("LC_LAZY_LOAD_DYLIB (TODO: Details)\n\n");
                 break;
                 
 #ifdef __MAC_10_7
             case LC_LOAD_UPWARD_DYLIB:
-                printf("LC_LOAD_UPWARD_DYLIB (TODO: Details)\n");
+                printf("LC_LOAD_UPWARD_DYLIB (TODO: Details)\n\n");
                 break;
 #endif
                 
             case LC_CODE_SIGNATURE:
-                printf("LC_CODE_SIGNATURE (TODO: Details)\n");
+                printf("LC_CODE_SIGNATURE (TODO: Details)\n\n");
                 break;
                 
             case LC_SEGMENT_SPLIT_INFO:
-                printf("LC_SEGMENT_SPLIT_INFO (TODO: Details)\n");
+                printf("LC_SEGMENT_SPLIT_INFO (TODO: Details)\n\n");
                 break;
 
 #ifdef __MAC_10_7
             case LC_FUNCTION_STARTS:
-                printf("LC_FUNCTION_STARTS (TODO: Details)\n");
+                printf("LC_FUNCTION_STARTS (TODO: Details)\n\n");
                 break;
 #endif
                 
             case LC_ENCRYPTION_INFO:
-                printf("LC_ENCRYPTION_INFO (TODO: Details)\n");
+                printf("LC_ENCRYPTION_INFO (TODO: Details)\n\n");
                 break;
                 
             case LC_RPATH:
-                printf("LC_RPATH (TODO: Details)\n");
+                printf("LC_RPATH (TODO: Details)\n\n");
                 break;
                 
             case LC_ROUTINES:
-                printf("LC_ROUTINES (TODO: Details)\n");
+                printf("LC_ROUTINES (TODO: Details)\n\n");
                 break;
                 
             case LC_ROUTINES_64:
-                printf("LC_ROUTINES_64 (TODO: Details)\n");
+                printf("LC_ROUTINES_64 (TODO: Details)\n\n");
                 break;
                 
             case LC_SUB_FRAMEWORK:
-                printf("LC_SUB_FRAMEWORK (TODO: Details)\n");
+                printf("LC_SUB_FRAMEWORK (TODO: Details)\n\n");
                 break;
                 
             case LC_SUB_UMBRELLA:
-                printf("LC_SUB_UMBRELLA (TODO: Details)\n");
+                printf("LC_SUB_UMBRELLA (TODO: Details)\n\n");
                 break;
                 
             case LC_SUB_CLIENT:
-                printf("LC_SUB_CLIENT (TODO: Details)\n");
+                printf("LC_SUB_CLIENT (TODO: Details)\n\n");
                 break;
                 
             case LC_SUB_LIBRARY:
-                printf("LC_SUB_LIBRARY (TODO: Details)\n");
+                printf("LC_SUB_LIBRARY (TODO: Details)\n\n");
                 break;
                 
             case LC_DYLD_INFO:
@@ -851,11 +851,11 @@ static void printLoadCommands(MachOFile& machofile)
                 
 #ifdef __MAC_10_7
             case LC_VERSION_MIN_MACOSX:
-                printf("LC_VERSION_MIN_MACOSX (TODO: Details)\n");
+                printf("LC_VERSION_MIN_MACOSX (TODO: Details)\n\n");
                 break;
                 
             case LC_VERSION_MIN_IPHONEOS:
-                printf("LC_VERSION_MIN_IPHONEOS (TODO: Details)\n");
+                printf("LC_VERSION_MIN_IPHONEOS (TODO: Details)\n\n");
                 break;
 #endif
             
