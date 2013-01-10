@@ -18,6 +18,7 @@
 #include <string.h>
 
 #include <libkern/OSAtomic.h>
+#include <mach-o/swap.h>
 
 #include "machofile.h"
 
@@ -135,8 +136,9 @@ namespace rotg {
     {
         uint32_t nfat = OSSwapBigToHostInt32(m_fat_header->nfat_arch);
         const struct fat_arch* archs = (const struct fat_arch*)macho_offset(input, m_fat_header, sizeof(struct fat_header), sizeof(struct fat_arch));
-        if (archs == NULL)
+        if (archs == NULL) {
             return false;
+        }
         
         //printf("Architecture Count: %d\n", nfat);
         for (uint32_t i = 0; i < nfat; i++) {
@@ -151,7 +153,9 @@ namespace rotg {
                 return false;
             
             fat_arch_info_t fat_arch_info;
-            fat_arch_info.arch = arch;
+            fat_arch_info.arch = *arch;
+            swap_fat_arch(&fat_arch_info.arch, 1, NX_LittleEndian);
+            fat_arch_info.ptr = arch;
             fat_arch_info.input.length = length;
             fat_arch_info.input.data = data;
             fat_arch_info.input.baseOffset = getOffset(data);
@@ -851,9 +855,9 @@ namespace rotg {
         
         if (dyld_info_cmd->export_off * dyld_info_cmd->export_size > 0)
         {
-            if (!parse_export_node(input, &cmd_info->loader_info.export_info, dyld_info_cmd->export_off, dyld_info_cmd->export_size, base_addr)) {
-                return false;
-            }
+//            if (!parse_export_node(input, &cmd_info->loader_info.export_info, dyld_info_cmd->export_off, dyld_info_cmd->export_size, base_addr)) {
+//                return false;
+//            }
         }
 
         return true;
@@ -1210,8 +1214,9 @@ namespace rotg {
     bool MachOFile::parse_macho(macho_input_t *input) {
         /* Read the file type. */
         const uint32_t* magic = (const uint32_t*)macho_read(input, input->data, sizeof(uint32_t));
-        if (magic == NULL)
+        if (magic == NULL) {
             return false;
+        }
         
         switch (*magic) {
             case MH_CIGAM:
@@ -1244,7 +1249,7 @@ namespace rotg {
                 
             case FAT_CIGAM:
             case FAT_MAGIC:
-                m_fat_header = (const struct fat_header*)macho_read(input, input->data, sizeof(*m_fat_header));
+                m_fat_header = (const struct fat_header*)macho_read(input, input->data, sizeof(struct fat_header));
                 m_is_universal = true;
                 break;
                 
@@ -1278,7 +1283,6 @@ namespace rotg {
         }
         
         /* mmap */
-        /* Parse */
         m_input.data = mmap(NULL, stbuf.st_size, PROT_READ, MAP_FILE|MAP_PRIVATE, m_fd, 0);
         if (m_input.data == MAP_FAILED) {
             return false;
@@ -1286,6 +1290,7 @@ namespace rotg {
         
         m_input.length = stbuf.st_size;
 
+        /* Parse */
         return parse_macho(&m_input);
     }
 

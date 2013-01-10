@@ -8,9 +8,72 @@
 
 #include <iostream>
 
+#include <math.h>
+
 #include "machofile.h"
 
 using namespace rotg;
+
+static const char* getCPUTypeString(cpu_type_t cputype)
+{
+    const char* strcputype = "Unknown";
+    
+    switch (cputype) {
+        case CPU_TYPE_ANY:
+            strcputype = "CPU_TYPE_ANY";
+            break;
+            
+        case CPU_TYPE_VAX:
+            strcputype = "CPU_TYPE_VAX";
+            break;
+            
+        case CPU_TYPE_MC680x0:
+            strcputype = "CPU_TYPE_MC680x0";
+            break;
+            
+        case CPU_TYPE_X86:
+            strcputype = "CPU_TYPE_X86";
+            break;
+            
+        case CPU_TYPE_X86_64:
+            strcputype = "CPU_TYPE_X86_64";
+            break;
+            
+        case CPU_TYPE_MC98000:
+            strcputype = "CPU_TYPE_MC98000";
+            break;
+            
+        case CPU_TYPE_HPPA:
+            strcputype = "CPU_TYPE_HPPA";
+            break;
+            
+        case CPU_TYPE_ARM:
+            strcputype = "CPU_TYPE_ARM";
+            break;
+            
+        case CPU_TYPE_MC88000:
+            strcputype = "CPU_TYPE_MC88000";
+            break;
+            
+        case CPU_TYPE_SPARC:
+            strcputype = "CPU_TYPE_SPARC";
+            break;
+            
+        case CPU_TYPE_I860:
+            strcputype = "CPU_TYPE_I860";
+            break;
+            
+        case CPU_TYPE_POWERPC:
+            strcputype = "CPU_TYPE_POWERPC";
+            break;
+            
+        case CPU_TYPE_POWERPC64:
+            strcputype = "CPU_TYPE_POWERPC64";
+            break;
+    }
+    
+    return strcputype;
+}
 
 static void printHeader(MachOFile& machoFile)
 {
@@ -61,64 +124,7 @@ static void printHeader(MachOFile& machoFile)
     printf("CPU Type\n");
     printf("\tOffset: 0x%08llx\n", machoFile.getOffset((void*)&header->cputype));
     printf("\tData  : 0x%X\n", header->cputype);
-    printf("\tValue : ");
-    switch (header->cputype) {
-        case CPU_TYPE_ANY:
-            printf("CPU_TYPE_ANY");
-            break;
-            
-        case CPU_TYPE_VAX:
-            printf("CPU_TYPE_VAX");
-            break;
-            
-        case CPU_TYPE_MC680x0:
-            printf("CPU_TYPE_MC680x0");
-            break;
-            
-        case CPU_TYPE_X86:
-            printf("CPU_TYPE_X86");
-            break;
-            
-        case CPU_TYPE_X86_64:
-            printf("CPU_TYPE_X86_64");
-            break;
-            
-        case CPU_TYPE_MC98000:
-            printf("CPU_TYPE_MC98000");
-            break;
-            
-        case CPU_TYPE_HPPA:
-            printf("CPU_TYPE_HPPA");
-            break;
-            
-        case CPU_TYPE_ARM:
-            printf("CPU_TYPE_ARM");
-            break;
-            
-        case CPU_TYPE_MC88000:
-            printf("CPU_TYPE_MC88000");
-            break;
-            
-        case CPU_TYPE_SPARC:
-            printf("CPU_TYPE_SPARC");
-            break;
-            
-        case CPU_TYPE_I860:
-            printf("CPU_TYPE_I860");
-            break;
-            
-        case CPU_TYPE_POWERPC:
-            printf("CPU_TYPE_POWERPC");
-            break;
-            
-        case CPU_TYPE_POWERPC64:
-            printf("CPU_TYPE_POWERPC64");
-            break;
-            
-        default:
-            printf("Unknown");
-            break;
-    }
+    printf("\tValue : %s", getCPUTypeString(header->cputype));
     printf("\n");
     
     printf("CPU SubType\n");
@@ -870,17 +876,17 @@ static void parseUniversal(MachOFile& machoFile)
     
     const fat_arch_infos_t& infos = machoFile.getFatArchInfos();
     
-    int archNum = 0;
+    int archNum = 1;
     fat_arch_infos_t::const_iterator iter;
     for (iter=infos.begin(); iter!=infos.end(); iter++) {
-        const struct fat_arch* arch = iter->arch;
-
+        const struct fat_arch& arch = iter->arch;
+        
         printf("\tArch %d\n", archNum);
-        printf("\t\tCPU Type: 0x%X\n", arch->cputype);
-        printf("\t\tCPU Sub Type: 0x%X\n", arch->cpusubtype);
-        printf("\t\tOffset: 0x%08X\n", arch->offset);
-        printf("\t\tSize: %d\n", arch->size);
-        printf("\t\tAlign: %d\n", arch->align);
+        printf("\t\tCPU Type: %s\n", getCPUTypeString(arch.cputype));
+        printf("\t\tCPU SubType: 0x%X\n", arch.cpusubtype);
+        printf("\t\tOffset: %d\n", arch.offset);
+        printf("\t\tSize: %u\n", arch.size);
+        printf("\t\tAlign: %f\n", pow(2, arch.align));
 
         archNum++;
     }

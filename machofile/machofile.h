@@ -57,8 +57,9 @@ namespace rotg {
     } macho_input_t;
     
     typedef struct fat_arch_info {
-        const struct fat_arch*  arch;
-        macho_input_t           input;
+        struct fat_arch arch;
+        const void*     ptr;
+        macho_input_t   input;
     } fat_arch_info_t;
     
     typedef std::vector<fat_arch_info_t> fat_arch_infos_t;
