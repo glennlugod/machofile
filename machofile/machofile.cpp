@@ -73,8 +73,8 @@ namespace rotg {
     }
     
     /* Verify that the given range is within bounds. */
-    const void* MachOFile::macho_read(const macho_input_t* input, const void *address, size_t length) {
-        if ((((uint8_t *) address) - ((uint8_t *) input->data)) + length > input->length) {
+    const void* MachOFile::macho_read(const void *address, size_t length) {
+        if ((((uint8_t *) address) - ((uint8_t *) m_input.data)) + length > m_input.length) {
             warnx("Short read parsing Mach-O input");
             return NULL;
         }
@@ -83,9 +83,9 @@ namespace rotg {
     }
     
     /* Verify that address + offset + length is within bounds. */
-    const void* MachOFile::macho_offset(const macho_input_t *input, const void *address, size_t offset, size_t length) {
+    const void* MachOFile::macho_offset(const void *address, size_t offset, size_t length) {
         void *result = ((uint8_t *) address) + offset;
-        return macho_read(input, result, length);
+        return macho_read(result, length);
     }
     
     const void* MachOFile::read_sleb128(const void *address, int64_t& result)
@@ -133,23 +133,23 @@ namespace rotg {
         return p;
     }
     
-    bool MachOFile::parse_universal(const macho_input_t *input)
+    bool MachOFile::parse_universal()
     {
         uint32_t nfat = OSSwapBigToHostInt32(m_fat_header->nfat_arch);
-        const struct fat_arch* archs = (const struct fat_arch*)macho_offset(input, m_fat_header, sizeof(struct fat_header), sizeof(struct fat_arch));
+        const struct fat_arch* archs = (const struct fat_arch*)macho_offset(m_fat_header, sizeof(struct fat_header), sizeof(struct fat_arch));
         if (archs == NULL) {
             return false;
         }
         
         //printf("Architecture Count: %d\n", nfat);
         for (uint32_t i = 0; i < nfat; i++) {
-            const struct fat_arch* arch = (const struct fat_arch*)macho_read(input, archs + i, sizeof(struct fat_arch));
+            const struct fat_arch* arch = (const struct fat_arch*)macho_read(archs + i, sizeof(struct fat_arch));
             if (arch == NULL)
                 return false;
             
             /* Fetch a pointer to the architecture's Mach-O header. */
             size_t length = OSSwapBigToHostInt32(arch->size);
-            const void *data = macho_offset(input, input->data, OSSwapBigToHostInt32(arch->offset), length);
+            const void *data = macho_offset(m_input.data, OSSwapBigToHostInt32(arch->offset), length);
             if (data == NULL)
                 return false;
             
@@ -167,7 +167,7 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_LC_SEGMENT_64(const macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
+    bool MachOFile::parse_LC_SEGMENT_64(uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct segment_command_64)) {
             warnx("Incorrect cmd size");
@@ -192,7 +192,7 @@ namespace rotg {
         // Section Headers
         for (uint32_t nsect = 0; nsect < segment_cmd_64->nsects; ++nsect)
         {
-            const struct section_64* section = (const struct section_64*)macho_offset(input, segment_cmd_64, sizeof(struct segment_command_64) + nsect * sizeof(struct section_64), sizeof(struct section_64));
+            const struct section_64* section = (const struct section_64*)macho_offset(segment_cmd_64, sizeof(struct segment_command_64) + nsect * sizeof(struct section_64), sizeof(struct section_64));
             if (section == NULL) {
                 return false;
             }
@@ -206,7 +206,7 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_LC_RPATH(const macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
+    bool MachOFile::parse_LC_RPATH(uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct rpath_command)) {
             warnx("Incorrect cmd size");
@@ -215,7 +215,7 @@ namespace rotg {
         
         /* Fetch the path */
         size_t pathlen = cmdsize - sizeof(struct rpath_command);
-        const char* pathptr = (const char*)macho_offset(input, load_cmd_info->cmd, sizeof(struct rpath_command), pathlen);
+        const char* pathptr = (const char*)macho_offset(load_cmd_info->cmd, sizeof(struct rpath_command), pathlen);
         if (pathptr == NULL)
             return false;
         
@@ -230,7 +230,7 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_LC_DYLIB(const macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
+    bool MachOFile::parse_LC_DYLIB(uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct dylib_command)) {
             warnx("Incorrect name size");
@@ -241,7 +241,7 @@ namespace rotg {
         
         /* Extract the install name */
         size_t namelen = cmdsize - sizeof(struct dylib_command);
-        const char* nameptr = (const char*)macho_offset(input, load_cmd_info->cmd, sizeof(struct dylib_command), namelen);
+        const char* nameptr = (const char*)macho_offset(load_cmd_info->cmd, sizeof(struct dylib_command), namelen);
         if (nameptr == NULL) {
             return false;
         }
@@ -262,9 +262,9 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_rebase_node(const macho_input_t *input, const struct dyld_info_command* dyld_info_cmd, uint64_t baseAddress)
+    bool MachOFile::parse_rebase_node(const struct dyld_info_command* dyld_info_cmd, uint64_t baseAddress)
     {
-        const uint8_t* ptr = (const uint8_t*)macho_offset(input, input->data, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size);
+        const uint8_t* ptr = (const uint8_t*)macho_offset(m_input.data, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size);
         if (ptr == NULL) {
             return false;
         }
@@ -480,7 +480,7 @@ namespace rotg {
         return isDone;
     }
     
-    bool MachOFile::parse_binding_node(const macho_input_t *input, binding_info_t* binding_info, uint64_t location, uint32_t length, BindNodeType nodeType, uint64_t baseAddress)
+    bool MachOFile::parse_binding_node(binding_info_t* binding_info, uint64_t location, uint32_t length, BindNodeType nodeType, uint64_t baseAddress)
     {
         uint64_t libOrdinal = 0;
         uint32_t type = 0;
@@ -490,7 +490,7 @@ namespace rotg {
         
         uint64_t doBindLocation = location;
         
-        const uint8_t* ptr = (const uint8_t*)macho_offset(input, input->data, location, length);
+        const uint8_t* ptr = (const uint8_t*)macho_offset(m_input.data, location, length);
         if (ptr == NULL) {
             return false;
         }
@@ -717,7 +717,7 @@ namespace rotg {
         return true;
     }
     
-    void MachOFile::printSymbols(const macho_input_t *input, export_info_t* exportInfo, const char* prefix, const uint8_t* ptr, uint64_t baseAddress)
+    void MachOFile::printSymbols(export_info_t* exportInfo, const char* prefix, const uint8_t* ptr, uint64_t baseAddress)
     {
         export_opcode_t exportOpcode;
         exportOpcode.ptr = ptr;
@@ -757,25 +757,25 @@ namespace rotg {
             
             exportOpcode.nodes.push_back(exportNode);
             
-            printSymbols(input, exportInfo, _prefix.c_str(), ptr, baseAddress);
+            printSymbols(exportInfo, _prefix.c_str(), ptr, baseAddress);
         }
         
         exportInfo->opcodes.push_back(exportOpcode);
     }
     
-    bool MachOFile::parse_export_node(const macho_input_t *input, export_info_t* export_info, uint64_t location, uint32_t length, uint64_t baseAddress)
+    bool MachOFile::parse_export_node(export_info_t* export_info, uint64_t location, uint32_t length, uint64_t baseAddress)
     {
-        const uint8_t* ptr = (const uint8_t*)macho_offset(input, input->data, location, length);
+        const uint8_t* ptr = (const uint8_t*)macho_offset(m_input.data, location, length);
         if (ptr == NULL) {
             return false;
         }
         
-        printSymbols(input, export_info, "", ptr, baseAddress);
+        printSymbols(export_info, "", ptr, baseAddress);
         
         return true;
     }
 
-    bool MachOFile::parse_LC_DYLD_INFO(const macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
+    bool MachOFile::parse_LC_DYLD_INFO(uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct dyld_info_command)) {
             warnx("Incorrect name size");
@@ -835,28 +835,28 @@ namespace rotg {
         
         if (dyld_info_cmd->bind_off * dyld_info_cmd->bind_size > 0)
         {
-            if (!parse_binding_node(input, &cmd_info->loader_info.binding_info, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size, NodeTypeBind, base_addr)) {
+            if (!parse_binding_node(&cmd_info->loader_info.binding_info, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size, NodeTypeBind, base_addr)) {
                 return false;
             }
         }
         
         if (dyld_info_cmd->weak_bind_off * dyld_info_cmd->weak_bind_size > 0)
         {
-            if (!parse_binding_node(input, &cmd_info->loader_info.weak_binding_info, dyld_info_cmd->weak_bind_off, dyld_info_cmd->weak_bind_size, NodeTypeWeakBind, base_addr)) {
+            if (!parse_binding_node(&cmd_info->loader_info.weak_binding_info, dyld_info_cmd->weak_bind_off, dyld_info_cmd->weak_bind_size, NodeTypeWeakBind, base_addr)) {
                 return false;
             }
         }
         
         if (dyld_info_cmd->lazy_bind_off * dyld_info_cmd->lazy_bind_size > 0)
         {
-            if (!parse_binding_node(input, &cmd_info->loader_info.lazy_binding_info, dyld_info_cmd->lazy_bind_off, dyld_info_cmd->lazy_bind_size, NodeTypeLazyBind, base_addr)) {
+            if (!parse_binding_node(&cmd_info->loader_info.lazy_binding_info, dyld_info_cmd->lazy_bind_off, dyld_info_cmd->lazy_bind_size, NodeTypeLazyBind, base_addr)) {
                 return false;
             }
         }
         
         if (dyld_info_cmd->export_off * dyld_info_cmd->export_size > 0)
         {
-//            if (!parse_export_node(input, &cmd_info->loader_info.export_info, dyld_info_cmd->export_off, dyld_info_cmd->export_size, base_addr)) {
+//            if (!parse_export_node(&cmd_info->loader_info.export_info, dyld_info_cmd->export_off, dyld_info_cmd->export_size, base_addr)) {
 //                return false;
 //            }
         }
@@ -864,7 +864,7 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_LC_THREAD(const macho_input_t *input, uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
+    bool MachOFile::parse_LC_THREAD(uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         const struct thread_command* cmd = (const struct thread_command*)load_cmd_info->cmd;
         
@@ -882,9 +882,9 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_load_commands(const macho_input_t *input)
+    bool MachOFile::parse_load_commands()
     {
-        const struct load_command* cmd = (const struct load_command*)macho_offset(input, m_header, m_header_size, sizeof(struct load_command));
+        const struct load_command* cmd = (const struct load_command*)macho_offset(m_header, m_header_size, sizeof(struct load_command));
         if (cmd == NULL) {
             return false;
         }
@@ -895,7 +895,7 @@ namespace rotg {
         for (uint32_t i = 0; i < ncmds; i++) {
             /* Load the full command */
             uint32_t cmdsize = read32(cmd->cmdsize);
-            cmd = (const struct load_command*)macho_read(input, cmd, cmdsize);
+            cmd = (const struct load_command*)macho_read(cmd, cmdsize);
             if (cmd == NULL) {
                 return false;
             }
@@ -911,7 +911,7 @@ namespace rotg {
             m_load_command_infos.push_back(load_cmd_info);
 
             /* Load the next command */
-            cmd = (const struct load_command*)macho_offset(input, cmd, cmdsize, sizeof(struct load_command));
+            cmd = (const struct load_command*)macho_offset(cmd, cmdsize, sizeof(struct load_command));
             if (cmd == NULL) {
                 return false;
             }
@@ -965,7 +965,7 @@ namespace rotg {
                     
                 case LC_SEGMENT_64:
                 {
-                    if (!parse_LC_SEGMENT_64(input, cmd_type, cmdsize, load_cmd_info)) {
+                    if (!parse_LC_SEGMENT_64(cmd_type, cmdsize, load_cmd_info)) {
                         return false;
                     }
                 } break;
@@ -1058,7 +1058,7 @@ namespace rotg {
                 case LC_THREAD:
                 case LC_UNIXTHREAD:
                 {
-                    if (!parse_LC_THREAD(input, cmd_type, cmdsize, load_cmd_info)) {
+                    if (!parse_LC_THREAD(cmd_type, cmdsize, load_cmd_info)) {
                         return false;
                     }
                 } break;
@@ -1072,7 +1072,7 @@ namespace rotg {
                 case LC_LOAD_UPWARD_DYLIB:
 #endif
                 {
-                    if (!parse_LC_DYLIB(input, cmd_type, cmdsize, load_cmd_info)) {
+                    if (!parse_LC_DYLIB(cmd_type, cmdsize, load_cmd_info)) {
                         return false;
                     }
                 } break;
@@ -1105,7 +1105,7 @@ namespace rotg {
                     
                 case LC_RPATH:
                 {
-                    if (!parse_LC_RPATH(input, cmd_type, cmdsize, load_cmd_info)) {
+                    if (!parse_LC_RPATH(cmd_type, cmdsize, load_cmd_info)) {
                         return false;
                     }
                 } break;
@@ -1179,7 +1179,7 @@ namespace rotg {
                 case LC_DYLD_INFO:
                 case LC_DYLD_INFO_ONLY:
                 {
-                    if (!parse_LC_DYLD_INFO(input, cmd_type, cmdsize, load_cmd_info)) {
+                    if (!parse_LC_DYLD_INFO(cmd_type, cmdsize, load_cmd_info)) {
                         return false;
                     }
                 } break;
@@ -1220,7 +1220,7 @@ namespace rotg {
         }
         
         /* Read the file type. */
-        const uint32_t* magic = (const uint32_t*)macho_read(input, input->data, sizeof(uint32_t));
+        const uint32_t* magic = (const uint32_t*)macho_read(input->data, sizeof(uint32_t));
         if (magic == NULL) {
             return false;
         }
@@ -1232,7 +1232,7 @@ namespace rotg {
                 
             case MH_MAGIC:
                 m_header_size = sizeof(*m_header);
-                m_header = (const struct mach_header*)macho_read(input, input->data, m_header_size);
+                m_header = (const struct mach_header*)macho_read(input->data, m_header_size);
                 if (m_header == NULL) {
                     return false;
                 }
@@ -1244,7 +1244,7 @@ namespace rotg {
                 
             case MH_MAGIC_64:
                 m_header_size = sizeof(*m_header64);
-                m_header64 = (const struct mach_header_64*)macho_read(input, input->data, m_header_size);
+                m_header64 = (const struct mach_header_64*)macho_read(input->data, m_header_size);
                 if (m_header64 == NULL)
                     return false;
                 
@@ -1256,7 +1256,7 @@ namespace rotg {
                 
             case FAT_CIGAM:
             case FAT_MAGIC:
-                m_fat_header = (const struct fat_header*)macho_read(input, input->data, sizeof(struct fat_header));
+                m_fat_header = (const struct fat_header*)macho_read(input->data, sizeof(struct fat_header));
                 m_is_universal = true;
                 break;
                 
@@ -1267,14 +1267,14 @@ namespace rotg {
         
         /* Parse universal file. */
         if (m_is_universal) {
-            return parse_universal(input);
+            return parse_universal();
         }
         
         /* Fetch the arch name */
         m_archInfo = NXGetArchInfoFromCpuType(read32(m_header->cputype), read32(m_header->cpusubtype));
         
         /* Parse the Mach-O load commands */
-        return parse_load_commands(input);
+        return parse_load_commands();
     }
 
     bool MachOFile::parse_file(const char* path)
