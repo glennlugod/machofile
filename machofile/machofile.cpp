@@ -35,6 +35,7 @@ namespace rotg {
         , m_is_universal(false)
         , m_archInfo(NULL)
         , m_is_need_byteswap(false)
+        , m_string_table(NULL)
     {
         memset(&m_input, 0, sizeof(macho_input_t));
     }
@@ -891,7 +892,7 @@ namespace rotg {
         if (strtab == NULL) {
             return false;
         }
-        m_symtab_command_info.strtab = strtab;
+        m_string_table = strtab;
         
         for (uint32_t nsym = 0; nsym < cmd->nsyms; ++nsym)
         {

@@ -935,6 +935,34 @@ static void printDynamicLoaderInfo(MachOFile& machoFile)
     }
 }
 
+static void printSymbols(MachOFile& machoFile)
+{
+    const symtab_command_info_t& symtab_cmd_info = machoFile.getSymtabCommandInfo();
+    
+    const nlist_infos_t& infos = symtab_cmd_info.nlist_infos;
+    
+    if (infos.size() > 0) {
+        printf("Symbols\n");
+    }
+    
+    nlist_infos_t::const_iterator iter;
+    for (iter = infos.begin(); iter != infos.end(); iter++) {
+        const nlist_info_t& nlist_info = *iter;
+        printf("\t%s\n", nlist_info.name);
+        if (machoFile.is64bit()) {
+            struct nlist_64 * nlst = (struct nlist_64 *)nlist_info.nlist;
+            printf("\t\tSection Index: %d\n", nlst->n_sect);
+            printf("\t\tType         : 0x%X\n", nlst->n_type);
+            printf("\t\tValue        : (0x%08llX) %lld\n", nlst->n_value, nlst->n_value);
+        } else {
+            struct nlist * nlst = (struct nlist *)nlist_info.nlist;
+            printf("\t\tSection Index: %d\n", nlst->n_sect);
+            printf("\t\tType         : 0x%X\n", nlst->n_type);
+            printf("\t\tValue        : (0x%08X) %d\n", nlst->n_value, nlst->n_value);
+        }
+    }
+}
+
 static void printMachODetails(MachOFile& machoFile);
 
 static void parseUniversal(MachOFile& machoFile)
@@ -984,6 +1012,7 @@ static void printMachODetails(MachOFile& machoFile)
         printHeader(machoFile);
         printLoadCommands(machoFile);
         printDynamicLoaderInfo(machoFile);
+        printSymbols(machoFile);
     }
     else if (machoFile.is32bit())
     {

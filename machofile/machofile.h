@@ -13,6 +13,7 @@
 #include <mach-o/getsect.h>
 #include <mach-o/fat.h> // for fat structure decoding
 #include <mach-o/arch.h> // to know which is local arch
+#include <mach-o/nlist.h>
 
 #include <sys/stat.h>
 
@@ -159,11 +160,12 @@ namespace rotg {
         const char *    name;
     } nlist_info_t;
     
+    typedef std::vector<nlist_info_t> nlist_infos_t;
+    
     typedef struct symtab_command_info {
         uint32_t                        cmd_type;
         const struct symtab_command*    cmd;
-        const char *                    strtab;
-        std::vector<nlist_info_t>       nlist_infos;
+        nlist_infos_t                   nlist_infos;
     } symtab_command_info_t;
     
     ////////////////////////////////////////////////////////////////////////////////
@@ -273,6 +275,10 @@ namespace rotg {
             return m_symtab_command_info;
         }
         
+        const char * getStringTable() const {
+            return m_string_table;
+        }
+        
     private:
         MachOFile operator=(MachOFile&);    // declare only, do not allow assign
         MachOFile(MachOFile&);              // declare only, do not allow copy
@@ -318,6 +324,7 @@ namespace rotg {
         runpath_additions_infos_t       m_runpath_additions_infos;
         fat_arch_infos_t                m_fat_arch_infos;
         symtab_command_info_t           m_symtab_command_info;
+        const char *                    m_string_table;
         
         section_64s_t                   m_section_64s;
         
