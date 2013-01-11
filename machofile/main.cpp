@@ -900,27 +900,23 @@ static void printDynamicLoaderInfo(MachOFile& machoFile)
 {
     printf("Dynamic Loader Info\n");
     
-    const dyld_info_command_infos_t& dylib_info_cmd_infos = machoFile.getDyldInfoCommandInfos();
+    const dyld_info_command_info_t& dylib_info_cmd_info = machoFile.getDyldInfoCommandInfo();
     
-    dyld_info_command_infos_t::const_iterator iter;
-    for (iter = dylib_info_cmd_infos.begin(); iter != dylib_info_cmd_infos.end(); iter++) {
-        //const dyld_info_command_info_t* dylib_info_cmd_info = *iter;
-        const dynamic_loader_info_t& loader_info = (*iter)->loader_info;
-        
-        if (loader_info.binding_info.actions.size() > 0) {
-            printf("\tBinding Info\n");
-            printBindingInfo(machoFile, loader_info.binding_info);
-        }
-        
-        if (loader_info.lazy_binding_info.actions.size() > 0) {
-            printf("\tLazy Binding Info\n");
-            printBindingInfo(machoFile, loader_info.lazy_binding_info);
-        }
-        
-        if (loader_info.export_info.actions.size() > 0) {
-            printf("\tExport Info\n");
-            printExportInfo(machoFile, loader_info.export_info);
-        }
+    const dynamic_loader_info_t& loader_info = dylib_info_cmd_info.loader_info;
+    
+    if (loader_info.binding_info.actions.size() > 0) {
+        printf("\tBinding Info\n");
+        printBindingInfo(machoFile, loader_info.binding_info);
+    }
+    
+    if (loader_info.lazy_binding_info.actions.size() > 0) {
+        printf("\tLazy Binding Info\n");
+        printBindingInfo(machoFile, loader_info.lazy_binding_info);
+    }
+    
+    if (loader_info.export_info.actions.size() > 0) {
+        printf("\tExport Info\n");
+        printExportInfo(machoFile, loader_info.export_info);
     }
 }
 

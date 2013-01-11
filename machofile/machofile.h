@@ -146,15 +146,18 @@ namespace rotg {
         const struct dyld_info_command* cmd;
         dynamic_loader_info_t           loader_info;
     } dyld_info_command_info_t;
-    
-    typedef std::vector<dyld_info_command_info_t*> dyld_info_command_infos_t;
-    
+        
     typedef struct thread_command_info {
         uint32_t                        cmd_type;
         const struct thread_command*    cmd;
     } thread_command_info_t;
     
     typedef std::vector<thread_command_info_t*> thread_command_infos_t;
+    
+    typedef struct symtab_command_info {
+        uint32_t                        cmd_type;
+        const struct symtab_command*    cmd;
+    } symtab_command_info_t;
     
     ////////////////////////////////////////////////////////////////////////////////
     
@@ -255,8 +258,8 @@ namespace rotg {
             return m_section_64s;
         }
         
-        const dyld_info_command_infos_t& getDyldInfoCommandInfos() const {
-            return m_dyld_info_command_infos;
+        const dyld_info_command_info_t& getDyldInfoCommandInfo() const {
+            return m_dyld_info_command_info;
         }
         
     private:
@@ -276,7 +279,8 @@ namespace rotg {
         bool parse_LC_DYLIB(uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
         bool parse_LC_DYLD_INFO(uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
         bool parse_LC_THREAD(uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
-        
+        bool parse_LC_SYMTAB(uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info);
+
         // dylib related parsing
         bool parse_rebase_node(const struct dyld_info_command* dyld_info_cmd, uint64_t baseAddress);
         bool parse_binding_node(binding_info_t* binding_info, uint64_t location, uint32_t length, BindNodeType nodeType, uint64_t baseAddress);
@@ -297,7 +301,7 @@ namespace rotg {
         
         load_command_infos_t            m_load_command_infos;
         segment_command_64_infos_t      m_segment_command_64_infos;
-        dyld_info_command_infos_t       m_dyld_info_command_infos;
+        dyld_info_command_info_t        m_dyld_info_command_info;
         thread_command_infos_t          m_thread_command_infos;
         dylib_command_infos_t           m_dylib_command_infos;
         runpath_additions_infos_t       m_runpath_additions_infos;

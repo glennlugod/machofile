@@ -46,11 +46,6 @@ namespace rotg {
             delete *s64i_iter;
         }
         
-        dyld_info_command_infos_t::iterator dici_iter;
-        for (dici_iter = m_dyld_info_command_infos.begin(); dici_iter != m_dyld_info_command_infos.end(); dici_iter++) {
-            delete *dici_iter;
-        }
-        
         thread_command_infos_t::iterator tci_iter;
         for (tci_iter = m_thread_command_infos.begin(); tci_iter != m_thread_command_infos.end(); tci_iter++) {
             delete *tci_iter;
@@ -820,17 +815,11 @@ namespace rotg {
             }
         }
         
-        dyld_info_command_info_t* cmd_info = new dyld_info_command_info_t();
-        if (cmd_info == NULL) {
-            return false;
-        }
+        load_cmd_info->cmd_info = &m_dyld_info_command_info;
         
-        m_dyld_info_command_infos.push_back(cmd_info);
-        load_cmd_info->cmd_info = cmd_info;
-
         const struct dyld_info_command* dyld_info_cmd = (const struct dyld_info_command*)load_cmd_info->cmd;
-        cmd_info->cmd = dyld_info_cmd;
-        cmd_info->cmd_type = cmd_type;
+        m_dyld_info_command_info.cmd = dyld_info_cmd;
+        m_dyld_info_command_info.cmd_type = cmd_type;
         
         if (dyld_info_cmd->rebase_off * dyld_info_cmd->rebase_size > 0)
         {
@@ -844,28 +833,28 @@ namespace rotg {
         
         if (dyld_info_cmd->bind_off * dyld_info_cmd->bind_size > 0)
         {
-            if (!parse_binding_node(&cmd_info->loader_info.binding_info, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size, NodeTypeBind, base_addr)) {
+            if (!parse_binding_node(&m_dyld_info_command_info.loader_info.binding_info, dyld_info_cmd->bind_off, dyld_info_cmd->bind_size, NodeTypeBind, base_addr)) {
                 return false;
             }
         }
         
         if (dyld_info_cmd->weak_bind_off * dyld_info_cmd->weak_bind_size > 0)
         {
-            if (!parse_binding_node(&cmd_info->loader_info.weak_binding_info, dyld_info_cmd->weak_bind_off, dyld_info_cmd->weak_bind_size, NodeTypeWeakBind, base_addr)) {
+            if (!parse_binding_node(&m_dyld_info_command_info.loader_info.weak_binding_info, dyld_info_cmd->weak_bind_off, dyld_info_cmd->weak_bind_size, NodeTypeWeakBind, base_addr)) {
                 return false;
             }
         }
         
         if (dyld_info_cmd->lazy_bind_off * dyld_info_cmd->lazy_bind_size > 0)
         {
-            if (!parse_binding_node(&cmd_info->loader_info.lazy_binding_info, dyld_info_cmd->lazy_bind_off, dyld_info_cmd->lazy_bind_size, NodeTypeLazyBind, base_addr)) {
+            if (!parse_binding_node(&m_dyld_info_command_info.loader_info.lazy_binding_info, dyld_info_cmd->lazy_bind_off, dyld_info_cmd->lazy_bind_size, NodeTypeLazyBind, base_addr)) {
                 return false;
             }
         }
         
         if (dyld_info_cmd->export_off * dyld_info_cmd->export_size > 0)
         {
-            if (!parse_export_node(&cmd_info->loader_info.export_info, "", dyld_info_cmd->export_off, dyld_info_cmd->export_size, 0, base_addr)) {
+            if (!parse_export_node(&m_dyld_info_command_info.loader_info.export_info, "", dyld_info_cmd->export_off, dyld_info_cmd->export_size, 0, base_addr)) {
                 return false;
             }
         }
@@ -888,6 +877,12 @@ namespace rotg {
         m_thread_command_infos.push_back(cmd_info);
         load_cmd_info->cmd_info = cmd_info;
         
+        return true;
+    }
+    
+    bool MachOFile::parse_LC_SYMTAB(uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
+    {
+        //symtab_command_info_t
         return true;
     }
     
@@ -981,6 +976,9 @@ namespace rotg {
                     
                 case LC_SYMTAB:
                 {
+                    if (!parse_LC_SYMTAB(cmd_type, cmdsize, load_cmd_info)) {
+                        return false;
+                    }
                     /*
                      MATCH_STRUCT(symtab_command,location)
                      
