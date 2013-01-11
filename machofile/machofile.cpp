@@ -882,7 +882,45 @@ namespace rotg {
     
     bool MachOFile::parse_LC_SYMTAB(uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
-        //symtab_command_info_t
+        const struct symtab_command * cmd = (const struct symtab_command*)load_cmd_info->cmd;
+        
+        m_symtab_command_info.cmd_type = cmd_type;
+        m_symtab_command_info.cmd = cmd;
+        
+        const char * strtab = (const char *)macho_offset(m_input.data, cmd->stroff, cmd->strsize);
+        if (strtab == NULL) {
+            return false;
+        }
+        m_symtab_command_info.strtab = strtab;
+        
+        for (uint32_t nsym = 0; nsym < cmd->nsyms; ++nsym)
+        {
+            nlist_info_t nlist_info;
+            
+            if (is64bit())
+            {
+                const struct nlist_64 * list = (const struct nlist_64 *)macho_offset(m_input.data, cmd->symoff + nsym * sizeof(struct nlist_64), sizeof(struct nlist_64));
+                if (list == NULL) {
+                    return false;
+                }
+                
+                nlist_info.nlist = (void *)list;
+                nlist_info.name = strtab + list->n_un.n_strx;
+            }
+            else
+            {
+                const struct nlist * list = (const struct nlist *)macho_offset(m_input.data, cmd->symoff + nsym * sizeof(struct nlist), sizeof(struct nlist));
+                if (list == NULL) {
+                    return false;
+                }
+                
+                nlist_info.nlist = (void *)list;
+                nlist_info.name = strtab + list->n_un.n_strx;
+            }
+            
+            m_symtab_command_info.nlist_infos.push_back(nlist_info);
+        }
+    
         return true;
     }
     
@@ -979,31 +1017,6 @@ namespace rotg {
                     if (!parse_LC_SYMTAB(cmd_type, cmdsize, load_cmd_info)) {
                         return false;
                     }
-                    /*
-                     MATCH_STRUCT(symtab_command,location)
-                     
-                     node = [self createLCSymtabNode:parent
-                     caption:caption
-                     location:location
-                     symtab_command:symtab_command];
-                     
-                     strtab = (char *)((uint8_t *)[dataController.fileData bytes] + imageOffset + symtab_command->stroff);
-                     
-                     for (uint32_t nsym = 0; nsym < symtab_command->nsyms; ++nsym)
-                     {
-                     if ([self is64bit] == NO)
-                     {
-                     MATCH_STRUCT(nlist,imageOffset + symtab_command->symoff + nsym * sizeof(struct nlist))
-                     symbols.push_back (nlist);
-                     }
-                     else // 64bit
-                     {
-                     MATCH_STRUCT(nlist_64,imageOffset + symtab_command->symoff + nsym * sizeof(struct nlist_64))
-                     symbols_64.push_back (nlist_64);
-                     }
-                     
-                     }
-                     */
                 } break;
                     
                 case LC_DYSYMTAB:

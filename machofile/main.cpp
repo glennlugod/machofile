@@ -898,23 +898,38 @@ static void printExportInfo(MachOFile& machoFile, const export_info_t& export_in
 
 static void printDynamicLoaderInfo(MachOFile& machoFile)
 {
-    printf("Dynamic Loader Info\n");
-    
+    bool printHeader = true;
+
     const dyld_info_command_info_t& dylib_info_cmd_info = machoFile.getDyldInfoCommandInfo();
     
     const dynamic_loader_info_t& loader_info = dylib_info_cmd_info.loader_info;
     
     if (loader_info.binding_info.actions.size() > 0) {
+        if (printHeader) {
+            printf("Dynamic Loader Info\n");
+            printHeader = false;
+        }
+        
         printf("\tBinding Info\n");
         printBindingInfo(machoFile, loader_info.binding_info);
     }
     
     if (loader_info.lazy_binding_info.actions.size() > 0) {
+        if (printHeader) {
+            printf("Dynamic Loader Info\n");
+            printHeader = false;
+        }
+        
         printf("\tLazy Binding Info\n");
         printBindingInfo(machoFile, loader_info.lazy_binding_info);
     }
     
     if (loader_info.export_info.actions.size() > 0) {
+        if (printHeader) {
+            printf("Dynamic Loader Info\n");
+            printHeader = false;
+        }
+        
         printf("\tExport Info\n");
         printExportInfo(machoFile, loader_info.export_info);
     }

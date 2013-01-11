@@ -154,9 +154,16 @@ namespace rotg {
     
     typedef std::vector<thread_command_info_t*> thread_command_infos_t;
     
+    typedef struct nlist_info {
+        void *          nlist; // cast to 'struct nlist' or 'struct nlist_64' based on architecture
+        const char *    name;
+    } nlist_info_t;
+    
     typedef struct symtab_command_info {
         uint32_t                        cmd_type;
         const struct symtab_command*    cmd;
+        const char *                    strtab;
+        std::vector<nlist_info_t>       nlist_infos;
     } symtab_command_info_t;
     
     ////////////////////////////////////////////////////////////////////////////////
@@ -262,6 +269,10 @@ namespace rotg {
             return m_dyld_info_command_info;
         }
         
+        const symtab_command_info_t& getSymtabCommandInfo() const {
+            return m_symtab_command_info;
+        }
+        
     private:
         MachOFile operator=(MachOFile&);    // declare only, do not allow assign
         MachOFile(MachOFile&);              // declare only, do not allow copy
@@ -306,6 +317,7 @@ namespace rotg {
         dylib_command_infos_t           m_dylib_command_infos;
         runpath_additions_infos_t       m_runpath_additions_infos;
         fat_arch_infos_t                m_fat_arch_infos;
+        symtab_command_info_t           m_symtab_command_info;
         
         section_64s_t                   m_section_64s;
         
