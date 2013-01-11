@@ -80,6 +80,8 @@ namespace rotg {
         const uint8_t*  ptr;
     } bind_opcode_t;
     
+    typedef std::vector<bind_opcode_t> bind_opcodes_t;
+
     enum BindNodeType {NodeTypeBind, NodeTypeWeakBind, NodeTypeLazyBind};
     
     typedef struct bind_action {
@@ -94,9 +96,11 @@ namespace rotg {
         uint64_t        ptrSize;
     } bind_action_t;
     
+    typedef std::vector<bind_action_t> bind_actions_t;
+    
     typedef struct binding_info {
-        std::vector<bind_opcode_t> opcodes;
-        std::vector<bind_action_t> actions;
+        bind_opcodes_t opcodes;
+        bind_actions_t actions;
     } binding_info_t;
     
     typedef struct export_node {
@@ -104,12 +108,16 @@ namespace rotg {
         uint64_t    skip;
     } export_node_t;
     
+    typedef std::vector<export_node_t> export_nodes_t;
+    
     typedef struct export_opcode {
-        uint8_t                     terminalSize;
-        uint8_t                     childCount;
-        std::vector<export_node_t>  nodes;
-        const uint8_t*              ptr;
+        uint8_t         terminalSize;
+        uint8_t         childCount;
+        export_nodes_t  nodes;
+        const uint8_t*  ptr;
     } export_opcode_t;
+    
+    typedef std::vector<export_opcode_t> export_opcodes_t;
     
     typedef struct export_action {
         uint64_t        flags;
@@ -119,9 +127,11 @@ namespace rotg {
         const uint8_t*  ptr;
     } export_action_t;
     
+    typedef std::vector<export_action_t> export_actions_t;
+    
     typedef struct export_info {
-        std::vector<export_opcode_t>  opcodes;
-        std::vector<export_action_t>  actions;
+        export_opcodes_t    opcodes;
+        export_actions_t    actions;
     } export_info_t;
     
     typedef struct dynamic_loader_info {
@@ -243,6 +253,10 @@ namespace rotg {
         
         const section_64s_t& getSection64s() const {
             return m_section_64s;
+        }
+        
+        const dyld_info_command_infos_t& getDyldInfoCommandInfos() const {
+            return m_dyld_info_command_infos;
         }
         
     private:

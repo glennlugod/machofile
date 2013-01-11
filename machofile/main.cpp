@@ -870,6 +870,62 @@ static void printLoadCommands(MachOFile& machofile)
     printf("\n");
 }
 
+static void printBindingInfo(MachOFile& machoFile, const binding_info_t& binding_info)
+{
+    printf("\t\tActions\n");
+    
+    bind_actions_t::const_iterator iter;
+    for (iter = binding_info.actions.begin(); iter != binding_info.actions.end(); iter++) {
+        const bind_action_t& action = *iter;
+        printf("\t\t\t0x%08llX\t%s\n", action.address, action.symbolName);
+    }
+    
+    printf("\n");
+}
+
+static void printExportInfo(MachOFile& machoFile, const export_info_t& export_info)
+{
+    printf("\t\tActions\n");
+    
+    export_actions_t::const_iterator iter;
+    for (iter = export_info.actions.begin(); iter != export_info.actions.end(); iter++) {
+        const export_action_t& action = *iter;
+        printf("\t\t\t0x%08llX\t%s\n", action.address, action.symbolName.c_str());
+    }
+    
+    printf("\n");
+}
+
+static void printDynamicLoaderInfo(MachOFile& machoFile)
+{
+    printf("Dynamic Loader Info\n");
+    
+    const dyld_info_command_infos_t& dylib_info_cmd_infos = machoFile.getDyldInfoCommandInfos();
+    
+    dyld_info_command_infos_t::const_iterator iter;
+    for (iter = dylib_info_cmd_infos.begin(); iter != dylib_info_cmd_infos.end(); iter++) {
+        //const dyld_info_command_info_t* dylib_info_cmd_info = *iter;
+        const dynamic_loader_info_t& loader_info = (*iter)->loader_info;
+        
+        if (loader_info.binding_info.actions.size() > 0) {
+            printf("\tBinding Info\n");
+            printBindingInfo(machoFile, loader_info.binding_info);
+        }
+        
+        if (loader_info.lazy_binding_info.actions.size() > 0) {
+            printf("\tLazy Binding Info\n");
+            printBindingInfo(machoFile, loader_info.lazy_binding_info);
+        }
+        
+        if (loader_info.export_info.actions.size() > 0) {
+            printf("\tExport Info\n");
+            printExportInfo(machoFile, loader_info.export_info);
+        }
+    }
+}
+
+static void printMachODetails(MachOFile& machoFile);
+
 static void parseUniversal(MachOFile& machoFile)
 {
     printf("Type: Universal file\n");
@@ -882,11 +938,11 @@ static void parseUniversal(MachOFile& machoFile)
         const struct fat_arch& arch = iter->arch;
         
         printf("\tArch %d\n", archNum);
-        printf("\t\tCPU Type: %s\n", getCPUTypeString(arch.cputype));
-        printf("\t\tCPU SubType: 0x%X\n", arch.cpusubtype);
-        printf("\t\tOffset: %d\n", arch.offset);
-        printf("\t\tSize: %u\n", arch.size);
-        printf("\t\tAlign: %f\n", pow(2, arch.align));
+        printf("\t\tCPU Type    : %s\n", getCPUTypeString(arch.cputype));
+        printf("\t\tCPU SubType : 0x%X\n", arch.cpusubtype);
+        printf("\t\tOffset      : %d\n", arch.offset);
+        printf("\t\tSize        : %u\n", arch.size);
+        printf("\t\tAlign       : %f\n", pow(2, arch.align));
 
         archNum++;
     }
@@ -902,19 +958,25 @@ static void parseUniversal(MachOFile& machoFile)
         MachOFile machoFile;
         
         if (machoFile.parse_macho(&(fat_arch_info.input))) {
-            if (machoFile.isUniversal()) {
-                parseUniversal(machoFile);
-            }
-            else if (machoFile.is64bit())
-            {
-                printHeader(machoFile);
-                printLoadCommands(machoFile);
-            }
-            else if (machoFile.is32bit())
-            {
-                printf("TODO: support 32-bit mach-o format\n\n");
-            }
+            printMachODetails(machoFile);
         }
+    }
+}
+
+static void printMachODetails(MachOFile& machoFile)
+{
+    if (machoFile.isUniversal()) {
+        parseUniversal(machoFile);
+    }
+    else if (machoFile.is64bit())
+    {
+        printHeader(machoFile);
+        printLoadCommands(machoFile);
+        printDynamicLoaderInfo(machoFile);
+    }
+    else if (machoFile.is32bit())
+    {
+        printf("TODO: support 32-bit mach-o format\n\n");
     }
 }
 
@@ -924,19 +986,7 @@ int main(int argc, const char * argv[])
     
     if (machoFile.parse_file(argv[1])) {
         printf("File: %s\n", argv[1]);
-        
-        if (machoFile.isUniversal()) {
-            parseUniversal(machoFile);
-        }
-        else if (machoFile.is64bit())
-        {
-            printHeader(machoFile);
-            printLoadCommands(machoFile);
-        }
-        else if (machoFile.is32bit())
-        {
-            printf("TODO: support 32-bit mach-o format\n");
-        }
+        printMachODetails(machoFile);
     }
     else
     {
