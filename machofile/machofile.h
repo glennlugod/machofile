@@ -115,6 +115,7 @@ namespace rotg {
         uint64_t        flags;
         uint64_t        offset;
         std::string     symbolName;
+        uint64_t        address;
         const uint8_t*  ptr;
     } export_action_t;
     

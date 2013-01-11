@@ -739,12 +739,15 @@ namespace rotg {
                 return false;
             }
             
-            ptr = (const uint8_t*)read_uleb128(ptr, exportAction.offset);
+            uint64_t offset;
+            ptr = (const uint8_t*)read_uleb128(ptr, offset);
             if (ptr == NULL) {
                 return false;
             }
+            exportAction.offset = offset;
             
             exportAction.symbolName = prefix;
+            exportAction.address = baseAddress + offset;
             
             exportInfo->actions.push_back(exportAction);
         }
