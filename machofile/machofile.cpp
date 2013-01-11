@@ -717,9 +717,9 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::printSymbols(export_info_t* exportInfo, const char* prefix, uint64_t location, uint64_t skipBytes, uint64_t baseAddress)
+    bool MachOFile::parse_export_node(export_info_t* exportInfo, const char* prefix, uint64_t location, uint64_t length, uint64_t skipBytes, uint64_t baseAddress)
     {
-        const uint8_t* ptr = (const uint8_t*)macho_offset(m_input.data, location + skipBytes, 0);
+        const uint8_t* ptr = (const uint8_t*)macho_offset(m_input.data, location + skipBytes, length);
         if (ptr == NULL) {
             return false;
         }
@@ -747,8 +747,6 @@ namespace rotg {
             exportAction.symbolName = prefix;
             
             exportInfo->actions.push_back(exportAction);
-            
-            ptr += terminalSize;
         }
         
         uint8_t childCount = *ptr;
@@ -761,17 +759,19 @@ namespace rotg {
             exportNode.label = (const char*)ptr;
             ptr += strlen(exportNode.label) + 1;
             
-            ptr = (const uint8_t*)read_uleb128(ptr, exportNode.skip);
+            uint64_t skip;
+            ptr = (const uint8_t*)read_uleb128(ptr, skip);
             if (ptr == NULL) {
                 return false;
             }
+            exportNode.skip = skip;
             
             std::string _prefix = prefix;
             _prefix += exportNode.label;
             
             exportOpcode.nodes.push_back(exportNode);
             
-            if (!printSymbols(exportInfo, _prefix.c_str(), location, exportNode.skip, baseAddress)) {
+            if (!parse_export_node(exportInfo, _prefix.c_str(), location, length - skip, skip, baseAddress)) {
                 return false;
             }
         }
@@ -781,11 +781,6 @@ namespace rotg {
         return true;
     }
     
-    bool MachOFile::parse_export_node(export_info_t* export_info, uint64_t location, uint32_t length, uint64_t baseAddress)
-    {
-        return printSymbols(export_info, "", location, 0, baseAddress);
-    }
-
     bool MachOFile::parse_LC_DYLD_INFO(uint32_t cmd_type, uint32_t cmdsize, load_command_info_t* load_cmd_info)
     {
         if (cmdsize < sizeof(struct dyld_info_command)) {
@@ -867,7 +862,7 @@ namespace rotg {
         
         if (dyld_info_cmd->export_off * dyld_info_cmd->export_size > 0)
         {
-            if (!parse_export_node(&cmd_info->loader_info.export_info, dyld_info_cmd->export_off, dyld_info_cmd->export_size, base_addr)) {
+            if (!parse_export_node(&cmd_info->loader_info.export_info, "", dyld_info_cmd->export_off, dyld_info_cmd->export_size, 0, base_addr)) {
                 return false;
             }
         }
